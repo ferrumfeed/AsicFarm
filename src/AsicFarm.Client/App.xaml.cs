@@ -17,28 +17,19 @@ public partial class App : Application
     public static void ApplyTheme(bool dark)
     {
         IsDark = dark;
-        try
-        {
-            ApplicationThemeManager.Apply(dark ? ApplicationTheme.Dark : ApplicationTheme.Light);
-        }
-        catch { }
+        try { ApplicationThemeManager.Apply(dark ? ApplicationTheme.Dark : ApplicationTheme.Light); } catch { }
     }
 
     protected override void OnStartup(StartupEventArgs e)
     {
         var services = new ServiceCollection();
-
         services.AddLogging(b => b.AddDebug().SetMinimumLevel(LogLevel.Information));
-
-        services.AddSingleton<HttpClient>(_ => new HttpClient
-        {
-            // Детальный снапшот висит 30-90 сек. UI не блокируется — запрос в фоне.
-            Timeout = TimeSpan.FromMinutes(3)
-        });
+        services.AddSingleton<HttpClient>(_ => new HttpClient { Timeout = TimeSpan.FromMinutes(3) });
 
         services.AddSingleton<ServerApiClient>();
         services.AddSingleton<TelemetryHubClient>();
         services.AddSingleton<BitcoinNetworkService>();
+        services.AddSingleton<PoolsViewModel>(); // НОВАЯ СТРОКА
 
         services.AddSingleton<ScheduleViewModel>(sp =>
         {
@@ -54,8 +45,16 @@ public partial class App : Application
 
         Services = services.BuildServiceProvider();
 
-        var window = Services.GetRequiredService<MainWindow>();
-        window.Show();
+        try
+        {
+            var window = Services.GetRequiredService<MainWindow>();
+            window.Show();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Критическая ошибка: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown();
+        }
 
         base.OnStartup(e);
     }

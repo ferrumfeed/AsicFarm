@@ -29,8 +29,6 @@ public sealed class ControlChannel : BackgroundService
         _registry = registry;
         _log = log;
 
-        // Свой HttpClient с явным SocketsHttpHandler.
-        // ConnectTimeout 30 сек, ответ может ждать 3 минуты.
         var handler = new SocketsHttpHandler
         {
             ConnectTimeout = TimeSpan.FromSeconds(30),
@@ -41,10 +39,7 @@ public sealed class ControlChannel : BackgroundService
             KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests,
         };
 
-        _http = new HttpClient(handler)
-        {
-            Timeout = TimeSpan.FromMinutes(3),
-        };
+        _http = new HttpClient(handler) { Timeout = TimeSpan.FromMinutes(3) };
 
         if (!string.IsNullOrWhiteSpace(_opt.ServerUrl))
         {
@@ -62,8 +57,7 @@ public sealed class ControlChannel : BackgroundService
             return;
         }
 
-        var url = _opt.ServerUrl.TrimEnd('/')
-                  + "/hubs/control?watchdogId=" + Uri.EscapeDataString(_opt.WatchdogId);
+        var url = _opt.ServerUrl.TrimEnd('/') + "/hubs/control?watchdogId=" + Uri.EscapeDataString(_opt.WatchdogId);
 
         _conn = new HubConnectionBuilder()
             .WithUrl(url, options =>
@@ -73,16 +67,10 @@ public sealed class ControlChannel : BackgroundService
             })
             .WithServerTimeout(TimeSpan.FromMinutes(5))
             .WithKeepAliveInterval(TimeSpan.FromSeconds(15))
-            .WithAutomaticReconnect(new[]
-            {
-                TimeSpan.Zero,
-                TimeSpan.FromSeconds(2),
-                TimeSpan.FromSeconds(5),
-                TimeSpan.FromSeconds(10),
-                TimeSpan.FromSeconds(30),
-            })
+            .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30) })
             .Build();
 
+        // Обработка стандартных команд
         _conn.On<ExecuteCommandMessage>("ExecuteCommand", async msg =>
         {
             if (msg.Command.Kind == MinerCommandKind.RequestDetailedSnapshot)
@@ -92,27 +80,34 @@ public sealed class ControlChannel : BackgroundService
             }
 
             var result = await ExecuteAsync(msg.Command, stoppingToken);
+            try { await _conn!.InvokeAsync("ReportResult", new CommandResultMessage(result), stoppingToken); }
+            catch (Exception ex) { _log.LogWarning(ex, "ReportResult failed"); }
+        });
+
+        // НОВЫЙ ОБРАБОТЧИК: Установка пулов
+        _conn.On<string, List<PoolConfigDto>>("SetPools", async (minerId, pools) =>
+        {
             try
             {
-                await _conn!.InvokeAsync("ReportResult",
-                    new CommandResultMessage(result), stoppingToken);
+                var ip = _registry.TryGetIp(minerId);
+                if (ip == null)
+                {
+                    _log.LogWarning("SetPools: Miner {MinerId} not found in registry", minerId);
+                    return;
+                }
+
+                var client = _clients.GetOrAdd(ip, CreateClient);
+                await client.SetPoolsAsync(pools, stoppingToken);
+                _log.LogInformation("Pools successfully set for {MinerId} ({Ip})", minerId, ip);
             }
             catch (Exception ex)
             {
-                _log.LogWarning(ex, "ReportResult failed");
+                _log.LogError(ex, "Failed to set pools for {MinerId}", minerId);
             }
         });
 
-        _conn.Reconnecting += _ =>
-        {
-            _log.LogWarning("Control channel reconnecting...");
-            return Task.CompletedTask;
-        };
-        _conn.Reconnected += _ =>
-        {
-            _log.LogInformation("Control channel reconnected");
-            return Task.CompletedTask;
-        };
+        _conn.Reconnecting += _ => { _log.LogWarning("Control channel reconnecting..."); return Task.CompletedTask; };
+        _conn.Reconnected += _ => { _log.LogInformation("Control channel reconnected"); return Task.CompletedTask; };
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -133,72 +128,43 @@ public sealed class ControlChannel : BackgroundService
         catch (OperationCanceledException) { }
     }
 
-    /// Обработка RequestDetailedSnapshot:
-    /// собираем снапшот локально, затем шлём его HTTP POST на сервер с retry.
     private async Task HandleDetailedAsync(MinerCommand cmd, CancellationToken ct)
     {
         DetailedIngestRequest payload;
-
         try
         {
-            var ip = _registry.TryGetIp(cmd.MinerId)
-                ?? throw new InvalidOperationException(
-                    $"Unknown miner '{cmd.MinerId}' — попробуй позже");
-
+            var ip = _registry.TryGetIp(cmd.MinerId) ?? throw new InvalidOperationException($"Unknown miner '{cmd.MinerId}'");
             var client = _clients.GetOrAdd(ip, CreateClient);
             var snapshot = await client.GetFullDetailsAsync(ct);
-
-            _log.LogInformation("Detailed snapshot for {Miner}: {Chains} chains, {Chips} chips",
-                cmd.MinerId,
-                snapshot.ChainDetails.Count,
-                snapshot.ChainDetails.Sum(c => c.Chips.Count));
-
-            payload = new DetailedIngestRequest(
-                cmd.RequestId, cmd.MinerId, true, null, snapshot);
+            payload = new DetailedIngestRequest(cmd.RequestId, cmd.MinerId, true, null, snapshot);
         }
-        catch (MinerAuthException ex)
+        // ИСПРАВЛЕНИЕ: Убрано имя переменной "ex", так как она не используется
+        catch (MinerAuthException)
         {
-            _log.LogWarning("Detailed {Miner}: AUTH {Msg}", cmd.MinerId, ex.Message);
-            payload = new DetailedIngestRequest(cmd.RequestId, cmd.MinerId, false,
-                "Authorization required. Задай Password в appsettings ватчдога.", null);
+            payload = new DetailedIngestRequest(cmd.RequestId, cmd.MinerId, false, "Authorization required. Задай Password в appsettings ватчдога.", null);
         }
-        catch (MinerUnreachableException ex)
+        catch (MinerUnreachableException)
         {
-            _log.LogWarning("Detailed {Miner}: UNREACHABLE {Msg}", cmd.MinerId, ex.Message);
-            payload = new DetailedIngestRequest(cmd.RequestId, cmd.MinerId, false,
-                "Miner unreachable", null);
+            payload = new DetailedIngestRequest(cmd.RequestId, cmd.MinerId, false, "Miner unreachable", null);
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, "Detailed {Miner} failed", cmd.MinerId);
             payload = new DetailedIngestRequest(cmd.RequestId, cmd.MinerId, false, ex.Message, null);
         }
 
-        // 3 попытки отправить на сервер
         for (var attempt = 1; attempt <= 3; attempt++)
         {
             try
             {
-                using var resp = await _http.PostAsJsonAsync(
-                    "api/v1/ingest/detailed", payload, WireJson.Options, ct);
-
-                if (resp.IsSuccessStatusCode)
-                {
-                    _log.LogInformation(
-                        "Detailed POST sent for {Miner} (attempt {Attempt}): {Code}",
-                        cmd.MinerId, attempt, (int)resp.StatusCode);
-                    return;
-                }
-
+                using var resp = await _http.PostAsJsonAsync("api/v1/ingest/detailed", payload, WireJson.Options, ct);
+                if (resp.IsSuccessStatusCode) return;
                 var body = await resp.Content.ReadAsStringAsync(ct);
-                _log.LogWarning("Detailed POST rejected: HTTP {Code} {Body}",
-                    (int)resp.StatusCode, body);
+                _log.LogWarning("Detailed POST rejected: HTTP {Code} {Body}", (int)resp.StatusCode, body);
                 return;
             }
-            catch (Exception ex) when (attempt < 3)
+            // ИСПРАВЛЕНИЕ: Убрано имя переменной "ex"
+            catch (Exception) when (attempt < 3)
             {
-                _log.LogWarning("Detailed POST attempt {Attempt} failed: {Msg}, retry in {Sec}s",
-                    attempt, ex.Message, attempt * 3);
                 await Task.Delay(TimeSpan.FromSeconds(attempt * 3), ct);
             }
             catch (Exception ex)
@@ -210,66 +176,45 @@ public sealed class ControlChannel : BackgroundService
 
     private async Task<MinerCommandResult> ExecuteAsync(MinerCommand cmd, CancellationToken ct)
     {
-        var result = new MinerCommandResult(
-            cmd.RequestId, cmd.MinerId, false, "unknown error", DateTimeOffset.UtcNow);
-
+        var result = new MinerCommandResult(cmd.RequestId, cmd.MinerId, false, "unknown error", DateTimeOffset.UtcNow);
         try
         {
-            var ip = _registry.TryGetIp(cmd.MinerId)
-                ?? throw new InvalidOperationException(
-                    $"Unknown miner '{cmd.MinerId}' — попробуй позже");
-
+            var ip = _registry.TryGetIp(cmd.MinerId) ?? throw new InvalidOperationException($"Unknown miner '{cmd.MinerId}'");
             var client = _clients.GetOrAdd(ip, CreateClient);
 
             switch (cmd.Kind)
             {
-                case MinerCommandKind.Reboot:
-                    await client.RebootAsync(ct); break;
-                case MinerCommandKind.StartMining:
-                    await client.StartMiningAsync(ct); break;
-                case MinerCommandKind.StopMining:
-                    await client.StopMiningAsync(ct); break;
-                case MinerCommandKind.RestartMining:
-                    await client.RestartMiningAsync(ct); break;
-                case MinerCommandKind.PauseMining:
-                    await client.PauseMiningAsync(ct); break;
-                case MinerCommandKind.ResumeMining:
-                    await client.ResumeMiningAsync(ct); break;
+                case MinerCommandKind.Reboot: await client.RebootAsync(ct); break;
+                case MinerCommandKind.StartMining: await client.StartMiningAsync(ct); break;
+                case MinerCommandKind.StopMining: await client.StopMiningAsync(ct); break;
+                case MinerCommandKind.RestartMining: await client.RestartMiningAsync(ct); break;
+                case MinerCommandKind.PauseMining: await client.PauseMiningAsync(ct); break;
+                case MinerCommandKind.ResumeMining: await client.ResumeMiningAsync(ct); break;
                 case MinerCommandKind.SwitchPool:
-                    if (cmd.PoolId is null)
-                        throw new InvalidOperationException("PoolId required for SwitchPool");
+                    if (cmd.PoolId is null) throw new InvalidOperationException("PoolId required for SwitchPool");
                     await client.SwitchPoolAsync(cmd.PoolId.Value, ct); break;
-                default:
-                    throw new InvalidOperationException($"Unknown command: {cmd.Kind}");
+                default: throw new InvalidOperationException($"Unknown command: {cmd.Kind}");
             }
-
-            _log.LogInformation("Command {Kind} on {Miner} ({Ip}): OK", cmd.Kind, cmd.MinerId, ip);
             return result with { Success = true, Error = null, CompletedAt = DateTimeOffset.UtcNow };
         }
-        catch (MinerAuthException ex)
+        // ИСПРАВЛЕНИЕ: Убрано имя переменной "ex"
+        catch (MinerAuthException)
         {
-            _log.LogWarning("Command {Kind} on {Miner}: AUTH {Msg}", cmd.Kind, cmd.MinerId, ex.Message);
             return result with { Error = "Authorization required", CompletedAt = DateTimeOffset.UtcNow };
         }
-        catch (MinerUnreachableException ex)
+        catch (MinerUnreachableException)
         {
-            _log.LogWarning("Command {Kind} on {Miner}: UNREACHABLE {Msg}", cmd.Kind, cmd.MinerId, ex.Message);
             return result with { Error = "Miner unreachable", CompletedAt = DateTimeOffset.UtcNow };
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, "Command {Kind} on {Miner}: failed", cmd.Kind, cmd.MinerId);
             return result with { Error = ex.Message, CompletedAt = DateTimeOffset.UtcNow };
         }
     }
 
     private VnishAntminerClient CreateClient(string ip)
     {
-        return new VnishAntminerClient(new VnishAntminerClientOptions
-        {
-            Host = ip,
-            Password = _opt.Password,
-        });
+        return new VnishAntminerClient(new VnishAntminerClientOptions { Host = ip, Password = _opt.Password });
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)

@@ -291,7 +291,9 @@ public sealed partial class ScheduleViewModel : ObservableObject
         try
         {
             await _api.DeleteScheduleAsync(s.Id);
-            await LoadAsync();
+
+            // ИСПРАВЛЕНИЕ: Мгновенно удаляем из коллекции для обновления UI
+            Schedules.Remove(s);
         }
         catch (Exception ex)
         {

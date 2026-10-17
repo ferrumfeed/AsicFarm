@@ -6,13 +6,19 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <!-- Подключаем базовые стили и контролы WPF UI -->
                 <ui:ThemesDictionary Theme="Dark"/>
                 <ui:ControlsDictionary/>
             </ResourceDictionary.MergedDictionaries>
 
+            <!-- Твои существующие конвертеры -->
             <conv:EnumToRussianConverter x:Key="EnumRu"/>
             <conv:PercentToWidthConverter x:Key="PctToW"/>
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+            <!-- НОВЫЙ КОНВЕРТЕР (добавлена эта строка) -->
+            <conv:EnumToIndexConverter x:Key="EnumToIndex"/>
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -44,12 +44,7 @@ public interface IAntminerClient : IAsyncDisposable
     Task<MinerIdentity> GetIdentityAsync(CancellationToken ct);
     Task<MinerSnapshot> GetSnapshotAsync(CancellationToken ct);
     Task<MinerSnapshot> GetDetailedSnapshotAsync(CancellationToken ct);
-
-    /// Полный детальный снапшот: агрегаты + почиповая инфа + топология + фабрика.
-    /// Тянет /info, /status, /summary, /chains, /model, /chains/factory-info.
-    /// Тяжёлый — вызывать редко (по запросу из UI, не в цикле мониторинга).
     Task<MinerDetailedSnapshot> GetFullDetailsAsync(CancellationToken ct);
-
     Task<MetricsHistory> GetMetricsAsync(TimeSpan window, TimeSpan step, CancellationToken ct);
 
     Task RebootAsync(CancellationToken ct);
@@ -59,4 +54,7 @@ public interface IAntminerClient : IAsyncDisposable
     Task PauseMiningAsync(CancellationToken ct);
     Task ResumeMiningAsync(CancellationToken ct);
     Task SwitchPoolAsync(int poolId, CancellationToken ct);
+
+    // НОВЫЙ МЕТОД:
+    Task SetPoolsAsync(List<PoolConfigDto> pools, CancellationToken ct);
 }

@@ -3,6 +3,8 @@ using AsicFarm.Server.Data;
 using AsicFarm.Server.Endpoints;
 using AsicFarm.Server.Hubs;
 using AsicFarm.Server.Services;
+using AsicFarm.Shared.Contracts;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
@@ -15,34 +17,22 @@ Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
     .Enrich.FromLogContext()
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
-    .WriteTo.File(
-        path: Path.Combine(baseDir, "logs", "server-.log"),
-        rollingInterval: RollingInterval.Day,
-        retainedFileCountLimit: 14,
-        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File(path: Path.Combine(baseDir, "logs", "server-.log"), rollingInterval: RollingInterval.Day, retainedFileCountLimit: 14, outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
     .CreateLogger();
 
 try
 {
     Log.Information("AsicFarm.Server starting... (base dir: {BaseDir})", baseDir);
 
-    var builder = WebApplication.CreateBuilder(new WebApplicationOptions
-    {
-        Args = args,
-        ContentRootPath = baseDir,
-    });
-
+    var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = args, ContentRootPath = baseDir });
     builder.Host.UseSerilog();
 
-    builder.Services.Configure<ServerOptions>(
-        builder.Configuration.GetSection(ServerOptions.SectionName));
+    builder.Services.Configure<ServerOptions>(builder.Configuration.GetSection(ServerOptions.SectionName));
 
     var dbPath = builder.Configuration.GetValue<string>("Server:DatabasePath") ?? "asicfarm.db";
-    if (!Path.IsPathRooted(dbPath))
-        dbPath = Path.Combine(baseDir, dbPath);
+    if (!Path.IsPathRooted(dbPath)) dbPath = Path.Combine(baseDir, dbPath);
 
-    builder.Services.AddDbContext<AsicFarmDbContext>(opt =>
-        opt.UseSqlite($"Data Source={dbPath}"));
+    builder.Services.AddDbContext<AsicFarmDbContext>(opt => opt.UseSqlite($"Data Source={dbPath}"));
 
     builder.Services.AddSignalR(options =>
     {
@@ -65,13 +55,11 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<AsicFarmDbContext>();
-
         if (app.Environment.IsDevelopment())
         {
             Log.Information("Development mode — re-creating database schema");
             db.Database.EnsureDeleted();
         }
-
         db.Database.EnsureCreated();
         Log.Information("Database ready: {DbPath}", dbPath);
     }
@@ -85,17 +73,44 @@ try
     app.MapAlerts();
     app.MapSettings();
     app.MapAutoActions();
+
+    // ================= НОВЫЙ ЭНДПОИНТ ДЛЯ ПУЛОВ =================
+    app.MapPost("/api/v1/miners/{minerId}/pools", async (
+        string minerId,
+        SetPoolsRequest request,
+        AsicFarmDbContext db,
+        IHubContext<ControlHub> hub,
+        ILogger<Program> log) =>
+    {
+        try
+        {
+            var miner = await db.Miners.FirstOrDefaultAsync(m => m.Id == minerId);
+            if (miner == null) return Results.NotFound($"Майнер {minerId} не найден в базе");
+
+            if (string.IsNullOrEmpty(miner.WatchdogId)) return Results.BadRequest($"У майнера {minerId} не указан WatchdogId");
+
+            // Отправляем команду конкретному Ватчдогу через SignalR
+            await hub.Clients.Group(miner.WatchdogId).SendAsync("SetPools", minerId, request.Pools);
+
+            log.LogInformation("Команда смены пулов отправлена майнеру {MinerId} через ватчдог {WatchdogId}", minerId, miner.WatchdogId);
+            return Results.Ok();
+        }
+        catch (Exception ex)
+        {
+            log.LogError(ex, "Ошибка при смене пулов для {MinerId}", minerId);
+            return Results.Problem(ex.Message);
+        }
+    });
+    // ===========================================================
+
     app.MapHub<TelemetryHub>(TelemetryHub.Route);
     app.MapHub<ControlHub>(ControlHub.Route);
 
     Log.Information("Server started, listening on http://0.0.0.0:5000");
     await app.RunAsync();
 }
-catch (Exception ex)
-{
-    Log.Fatal(ex, "Server terminated unexpectedly");
-}
-finally
-{
-    await Log.CloseAndFlushAsync();
-}
+catch (Exception ex) { Log.Fatal(ex, "Server terminated unexpectedly"); }
+finally { await Log.CloseAndFlushAsync(); }
+
+// DTO для запроса
+public record SetPoolsRequest(List<PoolConfigDto> Pools);
