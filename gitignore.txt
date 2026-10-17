@@ -1,0 +1,74 @@
+# ============ .NET ============
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio
+.vs/
+*.csproj.user
+*.vbproj.user
+*.fsproj.user
+*.dbproj.user
+*.sln.ide/
+*.vspscc
+*.vssscc
+
+# Rider
+.idea/
+*.sln.iml
+
+# VS Code
+.vscode/
+
+# NuGet
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# ============ AsicFarm специфика ============
+
+# SQLite БД (локальные, пересоздаются)
+*.db
+*.db-shm
+*.db-wal
+
+# Логи
+*.log
+logs/
+
+# Publish output
+publish/
+*.publishsettings
+
+# ============ OS ============
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ============ Секреты ============
+# Если появятся файлы с реальными токенами/паролями — добавить сюда:
+# appsettings.Local.json
+# appsettings.Secrets.json

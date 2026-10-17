@@ -1,0 +1,20 @@
+@host = http://localhost:5000
+@key = 19370219370219370219370219370219
+
+### 1. Сохранить Telegram настройки
+PUT {{host}}/api/v1/settings
+X-Api-Key: {{key}}
+Content-Type: application/json
+
+{
+  "Telegram:BotToken": "8946475761:AAGpUhMUQcv99smaSGGwGqwJ8YNDKYnwffs",
+  "Telegram:DefaultChatId": "1328187754"
+}
+
+### 2. Прочитать настройки (должен быть маскированный токен)
+GET {{host}}/api/v1/settings
+X-Api-Key: {{key}}
+
+### 3. Тест — должно прийти сообщение в телегу
+POST {{host}}/api/v1/settings/telegram/test
+X-Api-Key: {{key}}

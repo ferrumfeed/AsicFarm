@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/AsicFarm.Probe/AsicFarm.Probe.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/AsicFarm.MinerClients/AsicFarm.MinerClients.csproj" />
+    <Project Path="src/AsicFarm.Shared/AsicFarm.Shared.csproj" />
+  </Folder>
+  <Folder Name="/Элементы решения/">
+    <File Path="API.md" />
+    <File Path="ARCHITECTURE.md" />
+    <File Path="DEVELOPMENT.md" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="gitignore.txt" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="src/AsicFarm.Client/AsicFarm.Client.csproj" Id="745d8b75-2186-4bda-b0ce-d93357d454e2" />
+  <Project Path="src/AsicFarm.Server/AsicFarm.Server.csproj" Id="2f38c5aa-bd4e-46c1-9600-a095926a336c" />
+  <Project Path="src/AsicFarm.Watchdog/AsicFarm.Watchdog.csproj" Id="92dda6a8-069c-466c-b854-df024e090aea" />
+</Solution>

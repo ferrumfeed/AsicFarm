@@ -1,0 +1,29 @@
+﻿<Project>
+	<PropertyGroup>
+		<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.10" />
+		<PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.10" />
+		<PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+		<PackageVersion Include="Microsoft.Extensions.Logging" Version="8.0.1" />
+		<PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
+		<PackageVersion Include="Microsoft.Extensions.Options" Version="8.0.2" />
+		<PackageVersion Include="Microsoft.Extensions.Http" Version="8.0.1" />
+		<PackageVersion Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+		<PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
+		<PackageVersion Include="Polly" Version="8.4.2" />
+		<PackageVersion Include="Polly.Extensions.Http" Version="3.0.0" />
+		<PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+		<PackageVersion Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+		<PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.10" />
+		<PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+		<PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
+		<PackageVersion Include="WPF-UI" Version="4.3.0" />
+		<PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.1" />
+		<PackageVersion Include="Serilog.Extensions.Hosting" Version="8.0.0" />
+		<PackageVersion Include="Serilog.Sinks.File" Version="6.0.0" />
+		<PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0" />
+	</ItemGroup>
+</Project>
