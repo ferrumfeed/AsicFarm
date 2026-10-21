@@ -788,29 +788,93 @@
                                     <TextBlock Text="Автоматические действия" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                     <ui:Button DockPanel.Dock="Right" HorizontalAlignment="Right" Content="Обновить" Padding="10,4" Icon="{ui:SymbolIcon ArrowSync24}" Command="{Binding LoadCommand}"/>
                                 </DockPanel>
+
+                                <!-- СПИСОК АКТИВНЫХ АВТОДЕЙСТВИЙ -->
                                 <ItemsControl ItemsSource="{Binding AutoActions}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <ui:Card Padding="12" Margin="0,0,0,6">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
                                                         <ColumnDefinition Width="Auto"/>
+                                                        <!-- Индикатор -->
+                                                        <ColumnDefinition Width="*"/>
+                                                        <!-- Текст -->
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <!-- Кнопки -->
                                                     </Grid.ColumnDefinitions>
-                                                    <StackPanel Grid.Column="0">
-                                                        <TextBlock FontSize="13" FontWeight="SemiBold"><Run Text="{Binding Name}"/></TextBlock>
-                                                        <TextBlock FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"><Run Text="Когда: "/><Run Text="{Binding Trigger, Converter={StaticResource EnumRu}}"/><Run Text="   →   Действие: "/><Run Text="{Binding Action, Converter={StaticResource EnumRu}}" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"/></TextBlock>
-                                                        <TextBlock FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"><Run Text="Значение: "/><Run Text="{Binding Threshold}"/><Run Text="   ·   Через: "/><Run Text="{Binding ForSeconds}"/><Run Text=" сек"/></TextBlock>
+
+                                                    <!-- Визуальный индикатор статуса (зеленый/серый) -->
+                                                    <Border Grid.Column="0" Width="4" CornerRadius="2" Margin="0,0,12,0">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="#6b7280"/>
+                                                                <!-- Серый по умолчанию -->
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Enabled}" Value="True">
+                                                                        <Setter Property="Background" Value="#5cb85c"/>
+                                                                        <!-- Зеленый, если включено -->
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                    </Border>
+
+                                                    <StackPanel Grid.Column="1">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock FontSize="14" FontWeight="SemiBold" Text="{Binding Name}"/>
+                                                            <TextBlock Text=" " />
+                                                            <!-- Плашка "Активно" / "Выключено" -->
+                                                            <Border CornerRadius="4" Padding="4,1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                                <Border.Style>
+                                                                    <Style TargetType="Border">
+                                                                        <Setter Property="Background" Value="#3b4252"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Enabled}" Value="True">
+                                                                                <Setter Property="Background" Value="#2e5b2e"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Border.Style>
+                                                                <TextBlock FontSize="10" Foreground="White">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Text" Value="ВЫКЛ"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding Enabled}" Value="True">
+                                                                                    <Setter Property="Text" Value="АКТИВНО"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                            </Border>
+                                                        </StackPanel>
+
+                                                        <TextBlock FontSize="12" Margin="0,4,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                                                            <Run Text="Когда: "/><Run Text="{Binding Trigger, Converter={StaticResource EnumRu}}" FontWeight="SemiBold"/>
+                                                            <Run Text="   (Значение: "/><Run Text="{Binding Threshold}"/><Run Text=")"/>
+                                                        </TextBlock>
+                                                        <TextBlock FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                                                            <Run Text="Действие: "/><Run Text="{Binding Action, Converter={StaticResource EnumRu}}" Foreground="#93c5fd"/>
+                                                            <Run Text="   ·   Ждать: "/><Run Text="{Binding ForSeconds}"/><Run Text=" сек"/>
+                                                        </TextBlock>
                                                     </StackPanel>
-                                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                                        <ui:Button Content="Вкл / Выкл" Padding="8,2" Margin="0,0,4,0" Command="{Binding DataContext.ToggleAutoActionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
-                                                        <ui:Button Content="Удалить" Appearance="Danger" Padding="8,2" Command="{Binding DataContext.DeleteAutoActionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
+
+                                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <ui:Button Content="Вкл / Выкл" Padding="8,2" Margin="0,0,4,0"
+                                                                   Command="{Binding DataContext.ToggleAutoActionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                   CommandParameter="{Binding}"/>
+                                                        <ui:Button Content="Удалить" Appearance="Danger" Padding="8,2"
+                                                                   Command="{Binding DataContext.DeleteAutoActionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                   CommandParameter="{Binding}"/>
                                                     </StackPanel>
                                                 </Grid>
                                             </ui:Card>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+
                                 <TextBlock Text="Добавить действие" FontSize="14" FontWeight="SemiBold" Margin="0,16,0,8"/>
                                 <ui:TextBox Text="{Binding NewAutoName, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Например: Перезапуск при простое" Margin="0,0,0,8"/>
                                 <Grid Margin="0,0,0,8">
