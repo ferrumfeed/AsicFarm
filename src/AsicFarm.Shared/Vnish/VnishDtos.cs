@@ -10,6 +10,11 @@ public sealed record VnishErr([property: JsonPropertyName("err")] string Error);
 public sealed record VnishRebootAfter([property: JsonPropertyName("after")] long After);
 public sealed record VnishSwitchPoolBody([property: JsonPropertyName("pool_id")] int PoolId);
 
+// ---------- settings ----------
+public sealed record VnishSaveConfigResult(
+    [property: JsonPropertyName("restart_required")] bool RestartRequired,
+    [property: JsonPropertyName("reboot_required")] bool RebootRequired);
+
 // ---------- info ----------
 public sealed record VnishNetworkStatus(
     [property: JsonPropertyName("mac")] string Mac,
@@ -231,3 +236,29 @@ public sealed record VnishMetricsReply(
     [property: JsonPropertyName("timezone")] string Timezone,
     [property: JsonPropertyName("metrics")] IReadOnlyList<VnishTimeRecordMetrics> Metrics,
     [property: JsonPropertyName("annotations")] IReadOnlyList<VnishTimeRecordAnnotation> Annotations);
+
+public sealed record VnishPresetInfo(
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("pretty")] string Pretty,
+    [property: JsonPropertyName("status")] string Status,
+    [property: JsonPropertyName("modded_psu_required")] bool ModdedPsuRequired);
+
+public sealed record VnishPresetSwitcher(
+    [property: JsonPropertyName("enabled")] bool Enabled,
+    [property: JsonPropertyName("top_preset")] string? TopPreset,
+    [property: JsonPropertyName("min_preset")] string? MinPreset,
+    [property: JsonPropertyName("rise_temp")] int? RiseTemp,
+    [property: JsonPropertyName("decrease_temp")] int? DecreaseTemp,
+    [property: JsonPropertyName("check_time")] int? CheckTime,
+    [property: JsonPropertyName("autochange_top_preset")] bool AutochangeTopPreset,
+    [property: JsonPropertyName("ignore_fan_speed")] bool IgnoreFanSpeed,
+    [property: JsonPropertyName("power_delta")] int? PowerDelta);
+
+public sealed record VnishPerfSummary(
+    [property: JsonPropertyName("current_preset")] VnishPresetInfo? CurrentPreset,
+    [property: JsonPropertyName("preset_switcher")] VnishPresetSwitcher? PresetSwitcher);
+
+public sealed record VnishAutotunePreset(
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("pretty")] string Pretty,
+    [property: JsonPropertyName("status")] string Status);

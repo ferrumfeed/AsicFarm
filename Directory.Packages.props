@@ -1,9 +1,10 @@
 ﻿<Project>
 	<PropertyGroup>
 		<CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+		<NoWarn>$(NoWarn);NU1701</NoWarn>
 	</PropertyGroup>
-
 	<ItemGroup>
+		<!-- Твои существующие пакеты (оставь как есть) -->
 		<PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.10" />
 		<PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.10" />
 		<PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />

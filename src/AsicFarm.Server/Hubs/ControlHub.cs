@@ -86,5 +86,6 @@ public sealed class ControlHub : Hub
         }
     }
 
-    private static string GroupName(string watchdogId) => $"watchdog:{watchdogId}";
+    // ИСПРАВЛЕНО: было private, стало public
+    public static string GroupName(string watchdogId) => $"watchdog:{watchdogId}";
 }

@@ -11,17 +11,22 @@ public enum MinerCommandKind
     PauseMining,
     ResumeMining,
     SwitchPool,
-
-    /// Запрос детального снапшота. Сервер шлёт ватчдогу через SignalR,
-    /// ватчдог собирает и присылает результат через HTTP POST на /api/v1/ingest/detailed.
     RequestDetailedSnapshot,
+    SetPools,
+    SetTargetTemp,
+    ConfigurePresetSwitcher,
+    GetPresets
 }
 
 public sealed record MinerCommand(
     string RequestId,
     string MinerId,
     MinerCommandKind Kind,
-    int? PoolId = null);
+    int? PoolId = null,
+    List<PoolConfigDto>? Pools = null,
+    int? TargetTemp = null,
+    ConfigurePresetSwitcherRequest? PresetSwitcher = null
+);
 
 public sealed record MinerCommandResult(
     string RequestId,
@@ -30,10 +35,9 @@ public sealed record MinerCommandResult(
     string? Error,
     DateTimeOffset CompletedAt);
 
-/// Ватчдог → сервер: результат сборки детального снапшота.
-public sealed record DetailedIngestRequest(
+public sealed record CommandResultDto(
     string RequestId,
     string MinerId,
     bool Success,
     string? Error,
-    MinerDetailedSnapshot? Snapshot);
+    DateTimeOffset CompletedAt);

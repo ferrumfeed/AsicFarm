@@ -237,7 +237,7 @@ public sealed partial class MainViewModel : ObservableObject
     private void AddOrUpdate(MinerDto dto)
     {
         if (_index.TryGetValue(dto.MinerId, out var existing)) { existing.UpdateFrom(dto); return; }
-        var vm = new MinerItemViewModel(dto, ExecuteCommandAsync, OpenDetailAsync);
+        var vm = new MinerItemViewModel(dto, ExecuteCommandAsync, OpenDetailAsync, OpenSettingsAsync);
         _index[dto.MinerId] = vm; Miners.Add(vm);
     }
 
@@ -263,13 +263,25 @@ public sealed partial class MainViewModel : ObservableObject
         catch (Exception ex) { _log.LogError(ex, "OpenDetail failed"); StatusMessage = $"Ошибка: {ex.Message}"; }
     }
 
+    private async Task OpenSettingsAsync(MinerItemViewModel vm)
+    {
+        if (!_api.IsConfigured) { StatusMessage = "Сначала подключись"; return; }
+        try
+        {
+            var settingsVm = new MinerSettingsViewModel(_api, vm.MinerId);
+            var window = new MinerSettingsWindow(settingsVm) { Owner = Application.Current.MainWindow };
+            window.ShowDialog();
+        }
+        catch (Exception ex) { _log.LogError(ex, "OpenSettings failed"); StatusMessage = $"Ошибка: {ex.Message}"; }
+    }
+
     private void OnMinerUpdated(MinerUpdate update)
     {
         _dispatcher.Invoke(() =>
         {
             if (_index.TryGetValue(update.MinerId, out var vm)) { vm.ApplyLiveUpdate(update); RecalcFarmStats(); return; }
             var dto = new MinerDto(update.MinerId, update.Ip, update.Mac, update.Hostname, update.Model, update.ModelCode, $"{update.FirmwareName} {update.FirmwareVersion}".Trim(), update.WatchdogId, update.Timestamp, update.Timestamp, null);
-            var newVm = new MinerItemViewModel(dto, ExecuteCommandAsync, OpenDetailAsync);
+            var newVm = new MinerItemViewModel(dto, ExecuteCommandAsync, OpenDetailAsync, OpenSettingsAsync);
             newVm.ApplyLiveUpdate(update);
             _index[update.MinerId] = newVm; Miners.Add(newVm);
             Alerts.SetMiners(Miners); Settings.SetMiners(Miners); RecalcFarmStats(); RebuildWatchdogFilters();

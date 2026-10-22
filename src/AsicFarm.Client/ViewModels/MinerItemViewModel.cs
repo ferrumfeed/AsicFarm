@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Windows;
 using AsicFarm.Client.Api;
 using AsicFarm.Client.Services;
@@ -18,22 +19,9 @@ public sealed class ChainRowVM
     public int ChipTempMax { get; init; }
     public int HwErrors { get; init; }
 
-    public string HashrateText => HashrateGhs >= 1000
-        ? $"{HashrateGhs / 1000.0:F1} TH/s"
-        : $"{HashrateGhs:F0} GH/s";
-
-    public string TempText => ChipTempMax > 0
-        ? $"{ChipTempMin}–{ChipTempMax}°C"
-        : "—";
-
-    public string TempColor => ChipTempMax switch
-    {
-        <= 0 => "#6b7280",
-        < 60 => "#5cb85c",
-        < 70 => "#f0ad4e",
-        < 78 => "#fd7e14",
-        _ => "#d9534f",
-    };
+    public string HashrateText => HashrateGhs >= 1000 ? $"{HashrateGhs / 1000.0:F1} TH/s" : $"{HashrateGhs:F0} GH/s";
+    public string TempText => ChipTempMax > 0 ? $"{ChipTempMin}–{ChipTempMax}°C" : "—";
+    public string TempColor => ChipTempMax switch { <= 0 => "#6b7280", < 60 => "#5cb85c", < 70 => "#f0ad4e", < 78 => "#fd7e14", _ => "#d9534f" };
 }
 
 public sealed class PoolRowVM
@@ -44,20 +32,14 @@ public sealed class PoolRowVM
     public int Accepted { get; init; }
     public int Rejected { get; init; }
     public int PingMs { get; init; }
-
-    public string StatusColor => StatusText switch
-    {
-        "Активен" or "Работает" => "#5cb85c",
-        "Отклоняет" => "#f0ad4e",
-        "Отключён" => "#6b7280",
-        _ => "#6b7280",
-    };
+    public string StatusColor => StatusText switch { "Активен" or "Работает" => "#5cb85c", "Отклоняет" => "#f0ad4e", "Отключён" => "#6b7280", _ => "#6b7280" };
 }
 
 public sealed partial class MinerItemViewModel : ObservableObject
 {
     private readonly Func<string, MinerCommandKind, Task>? _commandHandler;
     private readonly Func<MinerItemViewModel, Task>? _openDetailHandler;
+    private readonly Func<MinerItemViewModel, Task>? _openSettingsHandler;
 
     public string MinerId { get; }
 
@@ -100,14 +82,7 @@ public sealed partial class MinerItemViewModel : ObservableObject
         {
             var s = 0;
             if (!IsOnline) s += 500;
-            s += State switch
-            {
-                "Failure" => 300,
-                "Stopped" => 100,
-                "Restarting" => 80,
-                "AutoTuning" => 40,
-                _ => 0,
-            };
+            s += State switch { "Failure" => 300, "Stopped" => 100, "Restarting" => 80, "AutoTuning" => 40, _ => 0 };
             if (HashratePercent > 0 && HashratePercent < 80) s += 150;
             else if (HashratePercent > 0 && HashratePercent < 90) s += 80;
             else if (HashratePercent > 0 && HashratePercent < 95) s += 30;
@@ -118,11 +93,7 @@ public sealed partial class MinerItemViewModel : ObservableObject
         }
     }
 
-    public bool HasProblem =>
-        !IsOnline
-        || State is "Failure" or "Stopped"
-        || (HashratePercent > 0 && HashratePercent < 90)
-        || ChipMaxTemp > 75;
+    public bool HasProblem => !IsOnline || State is "Failure" or "Stopped" || (HashratePercent > 0 && HashratePercent < 90) || ChipMaxTemp > 75;
 
     public string HashrateDisplay => HashrateGhs > 0 ? $"{HashrateGhs / 1000.0:F2} TH/s" : "—";
     public string EfficiencyDisplay => PowerEfficiencyJPerTh > 0 ? $"{PowerEfficiencyJPerTh:F1} Дж/TH" : "—";
@@ -130,36 +101,30 @@ public sealed partial class MinerItemViewModel : ObservableObject
     public string BoardTempDisplay => PcbMaxTemp > 0 ? $"{PcbMaxTemp}°C" : "—";
     public string HashratePercentDisplay => HashratePercent > 0 ? $"{HashratePercent:F1}%" : "—";
 
-    public string StateColor => State switch
-    {
-        "Mining" => "#5cb85c",
-        "AutoTuning" => "#5bc0de",
-        "Restarting" => "#f0ad4e",
-        "Failure" => "#d9534f",
-        "Stopped" => "#9aa0a6",
-        _ => "#9aa0a6",
-    };
-
+    public string StateColor => State switch { "Mining" => "#5cb85c", "AutoTuning" => "#5bc0de", "Restarting" => "#f0ad4e", "Failure" => "#d9534f", "Stopped" => "#9aa0a6", _ => "#9aa0a6" };
     public string HashrateBarColor => HashratePercent switch { <= 0 => "#6b7280", >= 95 => "#5cb85c", >= 85 => "#f0ad4e", _ => "#d9534f" };
     public string HashrateColor => HashratePercent switch { <= 0 => "#6b7280", >= 95 => "#5cb85c", >= 85 => "#f0ad4e", _ => "#d9534f" };
     public string TempColor => ChipMaxTemp switch { <= 0 => "#6b7280", < 60 => "#5cb85c", < 70 => "#f0ad4e", < 78 => "#fd7e14", _ => "#d9534f" };
     public string PcbTempColor => PcbMaxTemp switch { <= 0 => "#6b7280", < 50 => "#5cb85c", < 60 => "#f0ad4e", < 70 => "#fd7e14", _ => "#d9534f" };
     public string EfficiencyColor => PowerEfficiencyJPerTh switch { <= 0 => "#6b7280", < 28 => "#5cb85c", < 32 => "#f0ad4e", < 36 => "#fd7e14", _ => "#d9534f" };
 
-    public MinerItemViewModel(MinerDto dto, Func<string, MinerCommandKind, Task>? commandHandler = null, Func<MinerItemViewModel, Task>? openDetailHandler = null)
+    public MinerItemViewModel(
+        MinerDto dto,
+        Func<string, MinerCommandKind, Task>? commandHandler = null,
+        Func<MinerItemViewModel, Task>? openDetailHandler = null,
+        Func<MinerItemViewModel, Task>? openSettingsHandler = null)
     {
         MinerId = dto.MinerId;
         _commandHandler = commandHandler;
         _openDetailHandler = openDetailHandler;
+        _openSettingsHandler = openSettingsHandler;
         UpdateFrom(dto);
     }
 
     partial void OnIsExecutingChanged(bool value)
     {
-        RebootCommand.NotifyCanExecuteChanged();
-        StopMiningCommand.NotifyCanExecuteChanged();
-        StartMiningCommand.NotifyCanExecuteChanged();
-        RestartMiningCommand.NotifyCanExecuteChanged();
+        RebootCommand.NotifyCanExecuteChanged(); StopMiningCommand.NotifyCanExecuteChanged();
+        StartMiningCommand.NotifyCanExecuteChanged(); RestartMiningCommand.NotifyCanExecuteChanged();
     }
 
     private bool CanExecuteAction() => !IsExecuting;
@@ -167,13 +132,9 @@ public sealed partial class MinerItemViewModel : ObservableObject
     public void UpdateFrom(MinerDto dto)
     {
         Ip = dto.Ip; Mac = dto.Mac; Hostname = dto.Hostname; Model = dto.Model; Firmware = dto.Firmware; WatchdogId = dto.WatchdogId; LastSeen = dto.LastSeen;
-        var age = DateTimeOffset.UtcNow - dto.LastSeen;
-        IsOnline = age < TimeSpan.FromMinutes(2);
+        var age = DateTimeOffset.UtcNow - dto.LastSeen; IsOnline = age < TimeSpan.FromMinutes(2);
         if (dto.Snapshot is { } snap) ApplySnapshot(snap);
-        OnPropertyChanged(nameof(DisplayName));
-        OnPropertyChanged(nameof(ProblemScore));
-        OnPropertyChanged(nameof(HasProblem));
-        OnPropertyChanged(nameof(StateColor));
+        OnPropertyChanged(nameof(DisplayName)); OnPropertyChanged(nameof(ProblemScore)); OnPropertyChanged(nameof(HasProblem)); OnPropertyChanged(nameof(StateColor));
     }
 
     public void ApplyLiveUpdate(MinerUpdate update)
@@ -187,11 +148,7 @@ public sealed partial class MinerItemViewModel : ObservableObject
         State = snap.State.ToString(); HashrateGhs = snap.HashrateRealtimeGhs; HashratePercent = snap.HashratePercent; ChipMaxTemp = snap.ChipTemp?.Max ?? 0; PcbMaxTemp = snap.PcbTemp?.Max ?? 0; PowerW = snap.PowerConsumptionW; PowerEfficiencyJPerTh = snap.PowerEfficiencyJPerTh;
 
         var activePool = snap.Pools.FirstOrDefault(p => !string.IsNullOrEmpty(p.User));
-        if (activePool != null)
-        {
-            var userParts = activePool.User.Split('.');
-            WorkerName = userParts.Length > 1 ? userParts.Last() : activePool.User;
-        }
+        if (activePool != null) { var userParts = activePool.User.Split('.'); WorkerName = userParts.Length > 1 ? userParts.Last() : activePool.User; }
         else if (!string.IsNullOrEmpty(snap.Hostname)) WorkerName = snap.Hostname;
 
         UptimeText = snap.StateDuration is { } dur && dur.TotalMinutes > 0 ? $"в работе {Human(dur)}" : "";
@@ -226,6 +183,20 @@ public sealed partial class MinerItemViewModel : ObservableObject
 
     [RelayCommand] private async Task OpenDetailsAsync() { if (_openDetailHandler is not null) await _openDetailHandler(this); }
 
+    [RelayCommand]
+    private async Task OpenSettingsAsync()
+    {
+        if (_openSettingsHandler is not null) await _openSettingsHandler(this);
+    }
+
+    [RelayCommand]
+    private void OpenWebUi()
+    {
+        if (string.IsNullOrWhiteSpace(Ip)) return;
+        try { Process.Start(new ProcessStartInfo($"http://{Ip}") { UseShellExecute = true }); }
+        catch (Exception ex) { MessageBox.Show($"Не удалось открыть браузер: {ex.Message}"); }
+    }
+
     private async Task ExecuteCommandAsync(MinerCommandKind kind)
     {
         if (_commandHandler is null) return;
@@ -236,7 +207,7 @@ public sealed partial class MinerItemViewModel : ObservableObject
             var timeoutTask = Task.Delay(TimeSpan.FromSeconds(15));
             var completedTask = await Task.WhenAny(commandTask, timeoutTask);
 
-            if (completedTask == timeoutTask) MessageBox.Show($"Майнер {Model} ({Ip}) не ответил вовремя. Возможно, он недоступен.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+            if (completedTask == timeoutTask) MessageBox.Show($"Майнер {Model} ({Ip}) не ответил вовремя.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
             else await commandTask;
         }
         catch (Exception ex) { MessageBox.Show($"Ошибка при отправке команды: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error); }

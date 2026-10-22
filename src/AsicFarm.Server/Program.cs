@@ -4,6 +4,7 @@ using AsicFarm.Server.Endpoints;
 using AsicFarm.Server.Hubs;
 using AsicFarm.Server.Services;
 using AsicFarm.Shared.Contracts;
+using AsicFarm.Shared.Vnish;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -45,6 +46,7 @@ try
     builder.Services.AddSingleton<SettingsService>();
     builder.Services.AddSingleton<TelegramNotifier>();
     builder.Services.AddSingleton<DetailedSnapshotBroker>();
+    builder.Services.AddSingleton<PresetBroker>(); // Брокер для пресетов
     builder.Services.AddHostedService<ScheduleRunner>();
     builder.Services.AddHostedService<AlertRunner>();
     builder.Services.AddHostedService<AutoActionRunner>();
@@ -74,34 +76,81 @@ try
     app.MapSettings();
     app.MapAutoActions();
 
-    // ================= НОВЫЙ ЭНДПОИНТ ДЛЯ ПУЛОВ =================
+    // ================= ПУЛЫ =================
     app.MapPost("/api/v1/miners/{minerId}/pools", async (
-        string minerId,
-        SetPoolsRequest request,
-        AsicFarmDbContext db,
-        IHubContext<ControlHub> hub,
-        ILogger<Program> log) =>
+        string minerId, SetPoolsRequest request, AsicFarmDbContext db, IHubContext<ControlHub> hub, ILogger<Program> log) =>
     {
         try
         {
+            log.LogInformation("POST /pools: miner={MinerId}, pools={Count}", minerId, request.Pools.Count);
             var miner = await db.Miners.FirstOrDefaultAsync(m => m.Id == minerId);
-            if (miner == null) return Results.NotFound($"Майнер {minerId} не найден в базе");
-
-            if (string.IsNullOrEmpty(miner.WatchdogId)) return Results.BadRequest($"У майнера {minerId} не указан WatchdogId");
-
-            // Отправляем команду конкретному Ватчдогу через SignalR
-            await hub.Clients.Group(miner.WatchdogId).SendAsync("SetPools", minerId, request.Pools);
-
-            log.LogInformation("Команда смены пулов отправлена майнеру {MinerId} через ватчдог {WatchdogId}", minerId, miner.WatchdogId);
+            if (miner == null || string.IsNullOrEmpty(miner.WatchdogId)) return Results.NotFound();
+            var groupName = ControlHub.GroupName(miner.WatchdogId);
+            await hub.Clients.Group(groupName).SendAsync("SetPools", minerId, request.Pools);
+            log.LogInformation("POST /pools: sent to group '{GroupName}'", groupName);
             return Results.Ok();
         }
-        catch (Exception ex)
-        {
-            log.LogError(ex, "Ошибка при смене пулов для {MinerId}", minerId);
-            return Results.Problem(ex.Message);
-        }
+        catch (Exception ex) { log.LogError(ex, "POST /pools: FAILED"); return Results.Problem(ex.Message); }
     });
-    // ===========================================================
+
+    // ================= НАСТРОЙКИ =================
+    app.MapPost("/api/v1/miners/{minerId}/settings/target-temp", async (
+        string minerId, SetTargetTempRequest req, AsicFarmDbContext db, IHubContext<ControlHub> hub, ILogger<Program> log) =>
+    {
+        log.LogInformation("Endpoint HIT: target-temp miner={MinerId}, temp={Temp}", minerId, req.TargetTemp);
+        var miner = await db.Miners.FirstOrDefaultAsync(m => m.Id == minerId);
+        if (miner == null || string.IsNullOrEmpty(miner.WatchdogId)) return Results.NotFound();
+        var cmd = new MinerCommand(Guid.NewGuid().ToString("N"), minerId, MinerCommandKind.SetTargetTemp) { TargetTemp = req.TargetTemp };
+        await hub.Clients.Group(ControlHub.GroupName(miner.WatchdogId)).SendAsync("ExecuteCommand", new ExecuteCommandMessage(cmd));
+        return Results.Ok();
+    });
+
+    app.MapPost("/api/v1/miners/{minerId}/settings/preset-switcher", async (
+        string minerId, ConfigurePresetSwitcherRequest req, AsicFarmDbContext db, IHubContext<ControlHub> hub, ILogger<Program> log) =>
+    {
+        log.LogInformation("Endpoint HIT: preset-switcher miner={MinerId}", minerId);
+        var miner = await db.Miners.FirstOrDefaultAsync(m => m.Id == minerId);
+        if (miner == null || string.IsNullOrEmpty(miner.WatchdogId)) return Results.NotFound();
+        var cmd = new MinerCommand(Guid.NewGuid().ToString("N"), minerId, MinerCommandKind.ConfigurePresetSwitcher) { PresetSwitcher = req };
+        await hub.Clients.Group(ControlHub.GroupName(miner.WatchdogId)).SendAsync("ExecuteCommand", new ExecuteCommandMessage(cmd));
+        return Results.Ok();
+    });
+
+    // ================= ПРЕСЕТЫ (с ожиданием ответа) =================
+    app.MapGet("/api/v1/miners/{minerId}/presets", async (
+        string minerId, AsicFarmDbContext db, IHubContext<ControlHub> hub, PresetBroker broker, ILogger<Program> log) =>
+    {
+        var miner = await db.Miners.FirstOrDefaultAsync(m => m.Id == minerId);
+        if (miner == null || string.IsNullOrEmpty(miner.WatchdogId)) return Results.NotFound();
+
+        var requestId = Guid.NewGuid().ToString("N");
+        var tcs = broker.Register(requestId);
+
+        var cmd = new MinerCommand(requestId, minerId, MinerCommandKind.GetPresets);
+        await hub.Clients.Group(ControlHub.GroupName(miner.WatchdogId)).SendAsync("ExecuteCommand", new ExecuteCommandMessage(cmd));
+
+        // Увеличиваем таймаут до 90 секунд, потому что ответ от VNISH очень большой
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(90));
+        var completed = await Task.WhenAny(tcs.Task, Task.Delay(Timeout.Infinite, timeoutCts.Token));
+
+        if (completed == tcs.Task)
+        {
+            var presets = await tcs.Task;
+            log.LogInformation("Presets for {MinerId}: {Count} items", minerId, presets.Count);
+            return Results.Ok(presets);
+        }
+
+        broker.Remove(requestId);
+        log.LogWarning("Timeout waiting for presets from {MinerId}", minerId);
+        return Results.Json(new { error = "Timeout waiting for presets" }, statusCode: 504);
+    });
+
+    // ================= ПРИЕМ ПРЕСЕТОВ ОТ ВАТЧДОГА =================
+    app.MapPost("/api/v1/ingest/presets", (PresetsResponse response, PresetBroker broker) =>
+    {
+        broker.Complete(response.RequestId, response.Presets);
+        return Results.Ok();
+    });
 
     app.MapHub<TelemetryHub>(TelemetryHub.Route);
     app.MapHub<ControlHub>(ControlHub.Route);
@@ -112,5 +161,4 @@ try
 catch (Exception ex) { Log.Fatal(ex, "Server terminated unexpectedly"); }
 finally { await Log.CloseAndFlushAsync(); }
 
-// DTO для запроса
 public record SetPoolsRequest(List<PoolConfigDto> Pools);

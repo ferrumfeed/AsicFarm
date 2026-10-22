@@ -15,6 +15,7 @@
 		<PublishReadyToRun>false</PublishReadyToRun>
 		<PublishTrimmed>false</PublishTrimmed>
 		<DebugType>none</DebugType>
+		<ApplicationIcon>app.ico</ApplicationIcon>
 
 		<!-- Windows Service будет искать exe здесь -->
 		<PublishDir>..\..\publish\watchdog\</PublishDir>

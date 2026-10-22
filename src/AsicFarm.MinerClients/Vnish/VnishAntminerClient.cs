@@ -21,10 +21,7 @@ public sealed class VnishAntminerClient : IAntminerClient
     public string Host => _opt.Host;
     public FirmwareKind Firmware => FirmwareKind.Vnish;
 
-    public VnishAntminerClient(
-        VnishAntminerClientOptions options,
-        HttpClient? httpClient = null,
-        ILogger<VnishAntminerClient>? logger = null)
+    public VnishAntminerClient(VnishAntminerClientOptions options, HttpClient? httpClient = null, ILogger<VnishAntminerClient>? logger = null)
     {
         _opt = options ?? throw new ArgumentNullException(nameof(options));
         _log = logger ?? NullLogger<VnishAntminerClient>.Instance;
@@ -32,18 +29,11 @@ public sealed class VnishAntminerClient : IAntminerClient
 
         if (httpClient is null)
         {
-            var handler = new SocketsHttpHandler
-            {
-                ConnectTimeout = options.ConnectTimeout,
-                PooledConnectionLifetime = TimeSpan.FromMinutes(5),
-            };
+            var handler = new SocketsHttpHandler { ConnectTimeout = options.ConnectTimeout, PooledConnectionLifetime = TimeSpan.FromMinutes(5) };
             _http = new HttpClient(handler) { Timeout = options.RequestTimeout };
             _ownsHttp = true;
         }
-        else
-        {
-            _http = httpClient;
-        }
+        else { _http = httpClient; }
     }
 
     public async Task<FirmwareProbeResult> ProbeAsync(CancellationToken ct)
@@ -51,9 +41,7 @@ public sealed class VnishAntminerClient : IAntminerClient
         try
         {
             var info = await GetAsync<VnishInfo>(VnishEndpoints.Info, ct).ConfigureAwait(false);
-            if (info is null)
-                return new FirmwareProbeResult(false, FirmwareKind.Unknown, null, null, "empty /info");
-
+            if (info is null) return new FirmwareProbeResult(false, FirmwareKind.Unknown, null, null, "empty /info");
             return new FirmwareProbeResult(true, FirmwareKind.Vnish, info.FirmwareVersion, info.Miner, null);
         }
         catch (MinerUnreachableException ex) { return new FirmwareProbeResult(false, FirmwareKind.Unknown, null, null, ex.Message); }
@@ -70,16 +58,15 @@ public sealed class VnishAntminerClient : IAntminerClient
         var model = await modelTask.ConfigureAwait(false);
 
         var minerId = !string.IsNullOrWhiteSpace(info.System.Network.Mac) ? info.System.Network.Mac : info.Serial;
-
         FanLimits? fanLimits = model?.Cooling.FanMinCount is { } fmc ? new FanLimits(fmc.Min, fmc.Max, fmc.Default) : null;
         OverclockLimits? oc = model?.Overclock is { } o ? new OverclockLimits(o.MinFreq, o.MaxFreq, o.DefaultFreq, o.WarnFreq, o.MinVoltage, o.MaxVoltage, o.DefaultVoltage, o.MaxVoltageStockPsu) : null;
 
         return new MinerIdentity(
             MinerId: minerId, Ip: info.System.Network.Ip, Mac: info.System.Network.Mac, Hostname: info.System.Network.Hostname,
-            Serial: info.Serial, Model: info.Miner, ModelCode: info.Model, Algorithm: info.Algorithm,
-            FirmwareName: info.FirmwareName, FirmwareVersion: info.FirmwareVersion, Platform: info.Platform,
-            Series: model?.Series ?? "", InstallType: info.InstallType, ChipsPerChain: model?.Chain.ChipsPerChain,
-            NumChains: model?.Chain.NumChains, ChipsPerDomain: model?.Chain.ChipsPerDomain, FanLimits: fanLimits, OverclockLimits: oc);
+            Serial: info.Serial, Model: info.Miner, ModelCode: info.Model, Algorithm: info.Algorithm, FirmwareName: info.FirmwareName,
+            FirmwareVersion: info.FirmwareVersion, Platform: info.Platform, Series: model?.Series ?? "", InstallType: info.InstallType,
+            ChipsPerChain: model?.Chain.ChipsPerChain, NumChains: model?.Chain.NumChains, ChipsPerDomain: model?.Chain.ChipsPerDomain,
+            FanLimits: fanLimits, OverclockLimits: oc);
     }
 
     public Task<MinerSnapshot> GetSnapshotAsync(CancellationToken ct) => BuildSnapshotAsync(ct);
@@ -131,8 +118,8 @@ public sealed class VnishAntminerClient : IAntminerClient
             MinerId: minerId, IpAddress: info.System.Network.Ip, MacAddress: info.System.Network.Mac, Timestamp: DateTimeOffset.UtcNow, Firmware: FirmwareKind.Vnish,
             State: status.MinerState.ToMinerState(), StateDescription: status.Description, FailureCode: status.FailureCode, StateDuration: status.MinerStateTime > 0 ? TimeSpan.FromSeconds(status.MinerStateTime) : null,
             HashrateRealtimeGhs: 0, HashrateAverageGhs: 0, HashrateNominalGhs: 0, HashrateStockGhs: 0, HashratePercent: 0, PowerConsumptionW: 0, PowerEfficiencyJPerTh: 0,
-            ChipTemp: TempRange.Empty, PcbTemp: TempRange.Empty, PsuTempLlc1: null, PsuTempLlc2: null, PsuTempPfc: null,
-            HwErrors: 0, HwErrorsPercent: 0, HrError: 0, FoundBlocks: 0, BestShare: 0, DevFeePercent: 0, Chains: Array.Empty<ChainSnapshot>(), Pools: Array.Empty<PoolSnapshot>(),
+            ChipTemp: TempRange.Empty, PcbTemp: TempRange.Empty, PsuTempLlc1: null, PsuTempLlc2: null, PsuTempPfc: null, HwErrors: 0, HwErrorsPercent: 0, HrError: 0, FoundBlocks: 0, BestShare: 0, DevFeePercent: 0,
+            Chains: Array.Empty<ChainSnapshot>(), Pools: Array.Empty<PoolSnapshot>(),
             Cooling: new CoolingSnapshot(0, 0, FanControlMode.Auto, Array.Empty<FanSnapshot>()), Model: info.Miner, ModelCode: info.Model, Algorithm: info.Algorithm, FirmwareVersion: info.FirmwareVersion, FirmwareName: info.FirmwareName, SerialNumber: info.Serial, Hostname: info.System.Network.Hostname,
             ChipsPerChain: null, NumChains: null);
     }
@@ -199,9 +186,9 @@ public sealed class VnishAntminerClient : IAntminerClient
     public Task ResumeMiningAsync(CancellationToken ct) => PostAsync(VnishEndpoints.MiningResume, ct);
     public Task SwitchPoolAsync(int poolId, CancellationToken ct) => PostJsonAsync(VnishEndpoints.MiningSwitch, new VnishSwitchPoolBody(poolId), ct);
 
-    // НОВЫЙ МЕТОД:
-    public Task SetPoolsAsync(List<PoolConfigDto> pools, CancellationToken ct)
+    public async Task SetPoolsAsync(List<PoolConfigDto> pools, CancellationToken ct)
     {
+        _log.LogInformation("Vnish {Host}: SetPools called with {Count} pools", Host, pools.Count);
         var safePools = new List<PoolConfigDto>(pools);
         while (safePools.Count < 3) safePools.Add(new PoolConfigDto("", "", ""));
 
@@ -217,17 +204,110 @@ public sealed class VnishAntminerClient : IAntminerClient
                 }
             }
         };
-        return PostJsonAsync(VnishEndpoints.Settings, payload, ct);
+
+        _log.LogInformation("Vnish {Host}: POST {Path}, body: {Body}", Host, VnishEndpoints.Settings, JsonSerializer.Serialize(payload, VnishJson.Options));
+
+        VnishSaveConfigResult? result;
+        try { result = await PostJsonAsync<object, VnishSaveConfigResult>(VnishEndpoints.Settings, payload, ct); }
+        catch (MinerApiException ex) { _log.LogError("Vnish {Host}: settings API returned error: {Msg}", Host, ex.Message); throw; }
+
+        _log.LogInformation("Vnish {Host}: settings saved. RestartRequired={Restart}, RebootRequired={Reboot}", Host, result?.RestartRequired, result?.RebootRequired);
+
+        if (result?.RebootRequired == true) { _log.LogInformation("Vnish {Host}: reboot required, calling /system/reboot", Host); await RebootAsync(ct); }
+        else if (result?.RestartRequired == true) { _log.LogInformation("Vnish {Host}: restart required, calling /mining/restart", Host); await RestartMiningAsync(ct); }
+        else { _log.LogInformation("Vnish {Host}: no restart required (result={Result})", Host, result is null ? "NULL - likely 200 with empty body" : "OK"); }
+    }
+
+    public async Task SetTargetTemperatureAsync(int targetTemp, CancellationToken ct)
+    {
+        _log.LogInformation("Vnish {Host}: SetTargetTemperature({Temp}°C)", Host, targetTemp);
+
+        // VNISH хранит целевую температуру внутри mode.param
+        var payload = new
+        {
+            miner = new
+            {
+                cooling = new
+                {
+                    mode = new
+                    {
+                        name = "auto",
+                        param = targetTemp
+                    }
+                }
+            }
+        };
+
+        var jsonBody = JsonSerializer.Serialize(payload, VnishJson.Options);
+        _log.LogInformation("Vnish {Host}: POST /settings body: {Body}", Host, jsonBody);
+
+        try
+        {
+            var result = await PostJsonAsync<object, VnishSaveConfigResult>(VnishEndpoints.Settings, payload, ct);
+            _log.LogInformation("Vnish {Host}: target_temp response: RestartRequired={Restart}", Host, result?.RestartRequired);
+
+            if (result?.RestartRequired == true)
+            {
+                _log.LogInformation("Vnish {Host}: restart required after target_temp change", Host);
+                await RestartMiningAsync(ct);
+            }
+        }
+        catch (MinerApiException ex)
+        {
+            _log.LogError("Vnish {Host}: target_temp API error: {Msg}", Host, ex.Message);
+            throw;
+        }
+    }
+
+    public async Task ConfigurePresetSwitcherAsync(bool enabled, string minPreset, string maxPreset, int riseTemp, int decreaseTemp, CancellationToken ct)
+    {
+        _log.LogInformation("Vnish {Host}: ConfigurePresetSwitcher(enabled={En}, min={Min}, max={Max}, rise={Rise}, dec={Dec})", Host, enabled, minPreset, maxPreset, riseTemp, decreaseTemp);
+        var payload = new { miner = new { overclock = new { preset_switcher = new { enabled = enabled, min_preset = minPreset, top_preset = maxPreset, rise_temp = riseTemp, decrease_temp = decreaseTemp } } } };
+
+        VnishSaveConfigResult? result;
+        try
+        {
+            result = await PostJsonAsync<object, VnishSaveConfigResult>(VnishEndpoints.Settings, payload, ct);
+        }
+        catch (MinerApiException ex)
+        {
+            _log.LogError("Vnish {Host}: preset_switcher API error: {Msg}", Host, ex.Message);
+            throw;
+        }
+
+        _log.LogInformation("Vnish {Host}: preset_switcher saved. RestartRequired={Restart}", Host, result?.RestartRequired);
+
+        if (result?.RestartRequired == true)
+        {
+            _log.LogInformation("Vnish {Host}: restart required after preset_switcher change", Host);
+            await RestartMiningAsync(ct);
+        }
+    }
+
+    public async Task<List<VnishAutotunePreset>> GetAutotunePresetsAsync(CancellationToken ct)
+    {
+        _log.LogInformation("Vnish {Host}: GetAutotunePresetsAsync START", Host);
+        try
+        {
+            var presets = await GetAsyncList<VnishAutotunePreset>(VnishEndpoints.AutotunePresets, ct).ConfigureAwait(false);
+            _log.LogInformation("Vnish {Host}: GetAutotunePresetsAsync returned {Count} presets", Host, presets?.Count ?? 0);
+            return presets ?? new List<VnishAutotunePreset>();
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Vnish {Host}: GetAutotunePresetsAsync FAILED", Host);
+            throw;
+        }
     }
 
     private async Task<T?> GetAsync<T>(string path, CancellationToken ct) { using var req = new HttpRequestMessage(HttpMethod.Get, BuildUri(path)); return await SendAsync<T>(req, ct).ConfigureAwait(false); }
     private async Task<List<T>?> GetAsyncList<T>(string path, CancellationToken ct) { using var req = new HttpRequestMessage(HttpMethod.Get, BuildUri(path)); return await SendAsync<List<T>>(req, ct).ConfigureAwait(false); }
     private async Task PostAsync(string path, CancellationToken ct) { using var req = new HttpRequestMessage(HttpMethod.Post, BuildUri(path)); await SendAsync<object>(req, ct).ConfigureAwait(false); }
-    private async Task PostJsonAsync<TBody>(string path, TBody body, CancellationToken ct)
+    private Task PostJsonAsync<TBody>(string path, TBody body, CancellationToken ct) => PostJsonAsync<TBody, object>(path, body, ct);
+    private async Task<T?> PostJsonAsync<TBody, T>(string path, TBody body, CancellationToken ct)
     {
-        using var req = new HttpRequestMessage(HttpMethod.Post, BuildUri(path))
-        { Content = new StringContent(JsonSerializer.Serialize(body, VnishJson.Options), Encoding.UTF8, "application/json") };
-        await SendAsync<object>(req, ct).ConfigureAwait(false);
+        using var req = new HttpRequestMessage(HttpMethod.Post, BuildUri(path)) { Content = new StringContent(JsonSerializer.Serialize(body, VnishJson.Options), Encoding.UTF8, "application/json") };
+        return await SendAsync<T>(req, ct).ConfigureAwait(false);
     }
 
     private Uri BuildUri(string path) => new(_opt.BaseAddress, path);
@@ -242,8 +322,7 @@ public sealed class VnishAntminerClient : IAntminerClient
 
         if (response.StatusCode == HttpStatusCode.Unauthorized && !_auth.HasStaticApiKey && _opt.Password is { Length: > 0 })
         {
-            response.Dispose();
-            _auth.Invalidate();
+            response.Dispose(); _auth.Invalidate();
             _log.LogDebug("Vnish {Host}: 401, re-authenticating", Host);
             using var retryReq = await CloneAsync(req, ct).ConfigureAwait(false);
             await AttachAuthAsync(retryReq, ct).ConfigureAwait(false);
@@ -268,11 +347,7 @@ public sealed class VnishAntminerClient : IAntminerClient
 
         await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
         try { return await JsonSerializer.DeserializeAsync<T>(stream, VnishJson.Options, ct).ConfigureAwait(false); }
-        catch (JsonException ex)
-        {
-            var body = await SafeReadAsync(response, ct).ConfigureAwait(false);
-            throw new MinerApiException(Host, (int)response.StatusCode, $"Failed to deserialize as {typeof(T).Name}: {ex.Message}. Body: {body}");
-        }
+        catch (JsonException ex) { var body = await SafeReadAsync(response, ct).ConfigureAwait(false); throw new MinerApiException(Host, (int)response.StatusCode, $"Failed to deserialize as {typeof(T).Name}: {ex.Message}. Body: {body}"); }
     }
 
     private async Task AttachAuthAsync(HttpRequestMessage req, CancellationToken ct)
@@ -287,9 +362,7 @@ public sealed class VnishAntminerClient : IAntminerClient
 
     private async Task<string> AcquireTokenAsync(CancellationToken ct)
     {
-        using var req = new HttpRequestMessage(HttpMethod.Post, BuildUri(VnishEndpoints.Unlock))
-        { Content = new StringContent(JsonSerializer.Serialize(new VnishUnlockBody(_opt.Password!), VnishJson.Options), Encoding.UTF8, "application/json") };
-
+        using var req = new HttpRequestMessage(HttpMethod.Post, BuildUri(VnishEndpoints.Unlock)) { Content = new StringContent(JsonSerializer.Serialize(new VnishUnlockBody(_opt.Password!), VnishJson.Options), Encoding.UTF8, "application/json") };
         HttpResponseMessage resp;
         try { resp = await _http.SendAsync(req, ct).ConfigureAwait(false); }
         catch (HttpRequestException ex) { throw new MinerUnreachableException(Host, ex); }

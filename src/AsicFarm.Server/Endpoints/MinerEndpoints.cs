@@ -17,6 +17,10 @@ public static class MinerEndpoints
         app.MapGet("/api/v1/miners", GetMinersAsync);
         app.MapGet("/api/v1/miners/{id}", GetMinerAsync);
         app.MapGet("/api/v1/miners/{id}/detailed", GetDetailedAsync);
+
+        // НОВЫЙ ЭНДПОИНТ ДЛЯ МЕТРИК
+        app.MapGet("/api/v1/miners/{id}/metrics", GetMetricsAsync);
+
         app.MapGet("/api/v1/watchdogs", GetWatchdogsAsync);
         app.MapDelete("/api/v1/watchdogs/{id}", DeleteWatchdogAsync);
     }
@@ -79,6 +83,33 @@ public static class MinerEndpoints
         });
     }
 
+    // НОВЫЙ МЕТОД-ЗАГЛУШКА ДЛЯ ГРАФИКОВ
+    private static IResult GetMetricsAsync(string id, int windowSec, int stepSec)
+    {
+        var random = new Random(id.GetHashCode());
+        var now = DateTimeOffset.UtcNow;
+        var points = new List<MetricsPointDto>();
+        var events = new List<MinerEventAnnotationDto>();
+
+        int pointsCount = Math.Clamp(windowSec / Math.Max(stepSec, 60), 10, 1000);
+        for (int i = pointsCount; i >= 0; i--)
+        {
+            var time = now.AddSeconds(-i * stepSec);
+            points.Add(new MetricsPointDto(
+                time,
+                180000 + random.Next(-8000, 8000), // Хешрейт GH/s
+                65,
+                65 + random.Next(-3, 8),           // Температура
+                50,
+                4000 + random.Next(-200, 200)
+            ));
+        }
+        events.Add(new MinerEventAnnotationDto(now.AddHours(-12), "start", null));
+        events.Add(new MinerEventAnnotationDto(now.AddHours(-6), "restart", null));
+
+        return Results.Ok(new MetricsHistoryDto(points, events));
+    }
+
     private static async Task<IResult> GetDetailedAsync(
         string id,
         AsicFarmDbContext db,
@@ -106,7 +137,7 @@ public static class MinerEndpoints
                 AsicFarm.Shared.Contracts.MinerCommandKind.RequestDetailedSnapshot);
 
             await hub.Clients
-                .Group($"watchdog:{m.WatchdogId}")
+                .Group(ControlHub.GroupName(m.WatchdogId))
                 .SendAsync("ExecuteCommand",
                     new AsicFarm.Shared.Contracts.ExecuteCommandMessage(cmd), ct);
 
@@ -150,7 +181,6 @@ public static class MinerEndpoints
         return Results.Ok(sorted);
     }
 
-    /// Ручное удаление ватчдога + всех его майнеров.
     private static async Task<IResult> DeleteWatchdogAsync(
         string id,
         AsicFarmDbContext db,
@@ -184,3 +214,8 @@ public static class MinerEndpoints
         catch { return null; }
     }
 }
+
+// DTO для метрик (можно вынести в Shared)
+public sealed record MetricsPointDto(DateTimeOffset Time, double HashrateGhs, int PcbMaxTempC, int ChipMaxTempC, int FanDutyPercent, int PowerConsumptionW);
+public sealed record MinerEventAnnotationDto(DateTimeOffset Time, string Kind, int? ChainId);
+public sealed record MetricsHistoryDto(List<MetricsPointDto> Points, List<MinerEventAnnotationDto> Annotations);

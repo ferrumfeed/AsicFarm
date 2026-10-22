@@ -31,6 +31,16 @@ public sealed partial class PoolsViewModel : ObservableObject
     [ObservableProperty] private string _poolPassword = "x";
     [ObservableProperty] private SuffixMode _workerSuffixMode = SuffixMode.Index;
 
+    // --- СВОЙСТВА ДЛЯ ПРОГРЕСС-БАРА ---
+    [ObservableProperty] private bool _isApplying;
+    [ObservableProperty] private int _progressCurrent;
+    [ObservableProperty] private int _progressTotal;
+
+    public string ProgressText => $"Обработано {ProgressCurrent} из {ProgressTotal}";
+    partial void OnProgressCurrentChanged(int value) => OnPropertyChanged(nameof(ProgressText));
+    partial void OnProgressTotalChanged(int value) => OnPropertyChanged(nameof(ProgressText));
+    // -----------------------------------
+
     public ObservableCollection<PoolEntry> Pools { get; } = new()
     {
         new PoolEntry { Url = "stratum+tcp://btc.k8s.com:3333" },
@@ -69,6 +79,10 @@ public sealed partial class PoolsViewModel : ObservableObject
 
         if (MessageBox.Show($"Применить пулы к {selectedMiners.Count} майнерам?", "Подтверждение", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
 
+        IsApplying = true;
+        ProgressTotal = selectedMiners.Count;
+        ProgressCurrent = 0;
+
         int successCount = 0, errorCount = 0;
         string lastError = "";
 
@@ -87,8 +101,11 @@ public sealed partial class PoolsViewModel : ObservableObject
 
             try { await _api.SetPoolsAsync(miner.MinerId, poolConfigs); successCount++; }
             catch (Exception ex) { errorCount++; lastError = ex.Message; }
+
+            ProgressCurrent++;
         }
 
+        IsApplying = false;
         MessageBox.Show($"Готово!\nУспешно: {successCount}\nОшибок: {errorCount}\n{lastError}", "Результат");
     }
 }

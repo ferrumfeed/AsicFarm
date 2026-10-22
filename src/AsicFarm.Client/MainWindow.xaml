@@ -17,7 +17,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- ================= CONNECTION BAR ================= -->
+        <!-- CONNECTION BAR -->
         <Border Grid.Row="0" Padding="16,10" Background="{DynamicResource ApplicationBackgroundBrush}" BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="0,0,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -37,7 +37,7 @@
             </Grid>
         </Border>
 
-        <!-- ================= FARM METRICS ================= -->
+        <!-- FARM METRICS -->
         <Border Grid.Row="1" Padding="16,12" Background="{DynamicResource ApplicationBackgroundBrush}" BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="0,0,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -77,10 +77,10 @@
             </Grid>
         </Border>
 
-        <!-- ================= TABS ================= -->
+        <!-- TABS -->
         <TabControl Grid.Row="2" SelectedIndex="{Binding SelectedTab, Mode=TwoWay}">
 
-            <!-- ============ МАЙНЕРЫ ============ -->
+            <!-- МАЙНЕРЫ -->
             <TabItem Header="Майнеры">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -179,11 +179,15 @@
                                                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                                                         <Ellipse Width="10" Height="10" Margin="0,0,10,0" VerticalAlignment="Center" Fill="{Binding StateColor}"/>
                                                         <TextBlock FontSize="16" FontWeight="SemiBold"><Run Text="{Binding Model}"/></TextBlock>
-                                                        <TextBlock FontSize="13" Margin="10,2,0,0" Foreground="{DynamicResource TextFillColorTertiaryBrush}"><Run Text="{Binding Ip}"/></TextBlock>
+                                                        <TextBlock FontSize="13" Margin="10,2,0,0" Foreground="{DynamicResource TextFillColorTertiaryBrush}">
+                                                            <Hyperlink Command="{Binding OpenWebUiCommand}" Foreground="{DynamicResource TextFillColorTertiaryBrush}" TextDecorations="None">
+                                                                <Run Text="{Binding Ip}"/>
+                                                            </Hyperlink>
+                                                        </TextBlock>
                                                         <TextBlock FontSize="11" Margin="10,4,0,0" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Text="{Binding UptimeText}"/>
                                                     </StackPanel>
                                                     <Border DockPanel.Dock="Right" Padding="10,3" CornerRadius="10" Background="{Binding StateColor}" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding State, Converter={StaticResource EnumRu}}" FontSize="11" FontWeight="SemiBold" Foreground="White"/>
+                                                        <TextBlock Text="{Binding State, Converter={StaticResource EnumRu}}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}"/>
                                                     </Border>
                                                 </DockPanel>
 
@@ -283,6 +287,9 @@
                                                 <DockPanel Grid.Row="4" Margin="0,14,0,0">
                                                     <TextBlock DockPanel.Dock="Left" Text="{Binding FansText}" FontSize="11" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
                                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                        <!-- НОВАЯ КНОПКА -->
+                                                        <ui:Button Content="Настройки" Icon="{ui:SymbolIcon Settings24}" Margin="0,0,8,0" Command="{Binding OpenSettingsCommand}"/>
+
                                                         <ui:Button Content="Перезагрузить" Icon="{ui:SymbolIcon ArrowSync24}" Appearance="Danger" Margin="0,0,8,0" Command="{Binding RebootCommand}"/>
                                                         <ui:Button Content="Остановить" Icon="{ui:SymbolIcon Stop24}" Margin="0,0,8,0" Command="{Binding StopMiningCommand}"/>
                                                         <ui:Button Content="Запустить" Icon="{ui:SymbolIcon Play24}" Appearance="Primary" Margin="0,0,8,0" Command="{Binding StartMiningCommand}"/>
@@ -367,7 +374,11 @@
                                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                                                     <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center" Fill="{Binding StateColor}"/>
                                                     <TextBlock FontSize="12" FontWeight="SemiBold" Text="{Binding Model}"/>
-                                                    <TextBlock FontSize="12" Margin="8,0,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="{Binding Ip}"/>
+                                                    <TextBlock FontSize="12" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                        <Hyperlink Command="{Binding OpenWebUiCommand}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextDecorations="None">
+                                                            <Run Text="{Binding Ip}"/>
+                                                        </Hyperlink>
+                                                    </TextBlock>
                                                 </StackPanel>
                                                 <TextBlock Grid.Column="1" FontSize="12" VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding WorkerName}" TextTrimming="CharacterEllipsis"/>
                                                 <StackPanel Grid.Column="2" VerticalAlignment="Center">
@@ -379,6 +390,7 @@
                                                 <TextBlock Grid.Column="5" FontSize="12" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{Binding TempColor}" Text="{Binding TempDisplay}"/>
                                                 <TextBlock Grid.Column="6" FontSize="12" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{Binding PcbTempColor}" Text="{Binding BoardTempDisplay}"/>
                                                 <StackPanel Grid.Column="7" Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <ui:Button Icon="{ui:SymbolIcon Settings24}" Padding="6,2" Margin="0,0,4,0" ToolTip="Настройки" Command="{Binding OpenSettingsCommand}"/>
                                                     <ui:Button Icon="{ui:SymbolIcon ArrowSync24}" Appearance="Danger" Padding="6,2" Margin="0,0,4,0" ToolTip="Перезагрузить" Command="{Binding RebootCommand}"/>
                                                     <ui:Button Icon="{ui:SymbolIcon Stop24}" Padding="6,2" Margin="0,0,4,0" ToolTip="Остановить" Command="{Binding StopMiningCommand}"/>
                                                     <ui:Button Icon="{ui:SymbolIcon Play24}" Appearance="Primary" Padding="6,2" Margin="0,0,4,0" ToolTip="Запустить" Command="{Binding StartMiningCommand}"/>
@@ -394,7 +406,7 @@
                 </Grid>
             </TabItem>
 
-            <!-- ============ ПУЛЫ ============ -->
+            <!-- ПУЛЫ -->
             <TabItem Header="Пулы">
                 <Grid DataContext="{Binding Pools}">
                     <Grid.ColumnDefinitions>
@@ -422,7 +434,14 @@
                             <ui:TextBox Text="{Binding Pools[2].Password, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Пароль (опционально)" Margin="0,0,0,16"/>
                             <TextBlock Text="Общий пароль (если пулы не задали свой)" FontSize="12" Margin="0,0,0,4"/>
                             <ui:TextBox Text="{Binding PoolPassword, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="x" Margin="0,0,0,24"/>
+
                             <ui:Button Content="Применить к выбранным" Icon="{ui:SymbolIcon Play24}" Appearance="Primary" HorizontalAlignment="Stretch" Command="{Binding ApplyToSelectedCommand}"/>
+
+                            <StackPanel Visibility="{Binding IsApplying, Converter={StaticResource BoolToVis}}" Margin="0,16,0,0">
+                                <TextBlock Text="{Binding ProgressText}" FontSize="12" Margin="0,0,0,4" HorizontalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                <ProgressBar Value="{Binding ProgressCurrent}" Maximum="{Binding ProgressTotal}" Height="8" />
+                            </StackPanel>
+
                         </StackPanel>
                     </ScrollViewer>
                     <DockPanel Grid.Column="1" Margin="16">
@@ -448,7 +467,7 @@
                 </Grid>
             </TabItem>
 
-            <!-- ============ РАСПИСАНИЕ ============ -->
+            <!-- РАСПИСАНИЕ -->
             <TabItem Header="Расписание">
                 <Grid DataContext="{Binding Schedules}">
                     <Grid.ColumnDefinitions>
@@ -591,7 +610,7 @@
                 </Grid>
             </TabItem>
 
-            <!-- ============ УВЕДОМЛЕНИЯ ============ -->
+            <!-- УВЕДОМЛЕНИЯ -->
             <TabItem Header="Уведомления">
                 <Grid DataContext="{Binding Alerts}">
                     <Grid.ColumnDefinitions>
@@ -719,7 +738,7 @@
                 </Grid>
             </TabItem>
 
-            <!-- ============ НАСТРОЙКИ ============ -->
+            <!-- НАСТРОЙКИ -->
             <TabItem Header="Настройки">
                 <Grid DataContext="{Binding Settings}">
                     <Grid.ColumnDefinitions>
@@ -788,8 +807,6 @@
                                     <TextBlock Text="Автоматические действия" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
                                     <ui:Button DockPanel.Dock="Right" HorizontalAlignment="Right" Content="Обновить" Padding="10,4" Icon="{ui:SymbolIcon ArrowSync24}" Command="{Binding LoadCommand}"/>
                                 </DockPanel>
-
-                                <!-- СПИСОК АКТИВНЫХ АВТОДЕЙСТВИЙ -->
                                 <ItemsControl ItemsSource="{Binding AutoActions}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -797,34 +814,25 @@
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="Auto"/>
-                                                        <!-- Индикатор -->
                                                         <ColumnDefinition Width="*"/>
-                                                        <!-- Текст -->
                                                         <ColumnDefinition Width="Auto"/>
-                                                        <!-- Кнопки -->
                                                     </Grid.ColumnDefinitions>
-
-                                                    <!-- Визуальный индикатор статуса (зеленый/серый) -->
                                                     <Border Grid.Column="0" Width="4" CornerRadius="2" Margin="0,0,12,0">
                                                         <Border.Style>
                                                             <Style TargetType="Border">
                                                                 <Setter Property="Background" Value="#6b7280"/>
-                                                                <!-- Серый по умолчанию -->
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding Enabled}" Value="True">
                                                                         <Setter Property="Background" Value="#5cb85c"/>
-                                                                        <!-- Зеленый, если включено -->
                                                                     </DataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>
                                                         </Border.Style>
                                                     </Border>
-
                                                     <StackPanel Grid.Column="1">
                                                         <StackPanel Orientation="Horizontal">
                                                             <TextBlock FontSize="14" FontWeight="SemiBold" Text="{Binding Name}"/>
                                                             <TextBlock Text=" " />
-                                                            <!-- Плашка "Активно" / "Выключено" -->
                                                             <Border CornerRadius="4" Padding="4,1" Margin="8,0,0,0" VerticalAlignment="Center">
                                                                 <Border.Style>
                                                                     <Style TargetType="Border">
@@ -836,7 +844,7 @@
                                                                         </Style.Triggers>
                                                                     </Style>
                                                                 </Border.Style>
-                                                                <TextBlock FontSize="10" Foreground="White">
+                                                                <TextBlock FontSize="10" Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}">
                                                                     <TextBlock.Style>
                                                                         <Style TargetType="TextBlock">
                                                                             <Setter Property="Text" Value="ВЫКЛ"/>
@@ -850,31 +858,24 @@
                                                                 </TextBlock>
                                                             </Border>
                                                         </StackPanel>
-
                                                         <TextBlock FontSize="12" Margin="0,4,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
                                                             <Run Text="Когда: "/><Run Text="{Binding Trigger, Converter={StaticResource EnumRu}}" FontWeight="SemiBold"/>
                                                             <Run Text="   (Значение: "/><Run Text="{Binding Threshold}"/><Run Text=")"/>
                                                         </TextBlock>
                                                         <TextBlock FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
-                                                            <Run Text="Действие: "/><Run Text="{Binding Action, Converter={StaticResource EnumRu}}" Foreground="#93c5fd"/>
+                                                            <Run Text="Действие: "/><Run Text="{Binding Action, Converter={StaticResource EnumRu}}" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
                                                             <Run Text="   ·   Ждать: "/><Run Text="{Binding ForSeconds}"/><Run Text=" сек"/>
                                                         </TextBlock>
                                                     </StackPanel>
-
                                                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                                        <ui:Button Content="Вкл / Выкл" Padding="8,2" Margin="0,0,4,0"
-                                                                   Command="{Binding DataContext.ToggleAutoActionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                                   CommandParameter="{Binding}"/>
-                                                        <ui:Button Content="Удалить" Appearance="Danger" Padding="8,2"
-                                                                   Command="{Binding DataContext.DeleteAutoActionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                                   CommandParameter="{Binding}"/>
+                                                        <ui:Button Content="Вкл / Выкл" Padding="8,2" Margin="0,0,4,0" Command="{Binding DataContext.ToggleAutoActionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
+                                                        <ui:Button Content="Удалить" Appearance="Danger" Padding="8,2" Command="{Binding DataContext.DeleteAutoActionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
                                                     </StackPanel>
                                                 </Grid>
                                             </ui:Card>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-
                                 <TextBlock Text="Добавить действие" FontSize="14" FontWeight="SemiBold" Margin="0,16,0,8"/>
                                 <ui:TextBox Text="{Binding NewAutoName, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Например: Перезапуск при простое" Margin="0,0,0,8"/>
                                 <Grid Margin="0,0,0,8">
@@ -928,7 +929,7 @@
             </TabItem>
         </TabControl>
 
-        <!-- ================= FOOTER ================= -->
+        <!-- FOOTER -->
         <Border Grid.Row="3" Padding="16,8" Background="{DynamicResource ApplicationBackgroundBrush}" BorderBrush="{DynamicResource ControlElevationBorderBrush}" BorderThickness="0,1,0,0">
             <DockPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">

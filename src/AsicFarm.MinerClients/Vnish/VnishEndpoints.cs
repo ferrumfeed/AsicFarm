@@ -12,7 +12,8 @@ internal static class VnishEndpoints
     public const string Chains = "chains";
     public const string ChainsFactoryInfo = "chains/factory-info";
     public const string PerfSummary = "perf-summary";
-    public const string Settings = "settings"; // ДОБАВЛЕНО
+    public const string Settings = "settings";
+    public const string AutotunePresets = "autotune/presets";
 
     public const string MiningStart = "mining/start";
     public const string MiningStop = "mining/stop";
