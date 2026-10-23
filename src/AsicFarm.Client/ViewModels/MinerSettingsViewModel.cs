@@ -1,7 +1,5 @@
-﻿using System.Collections.ObjectModel;
-using System.Windows;
+﻿using System.Windows;
 using AsicFarm.Client.Api;
-using AsicFarm.Shared.Vnish;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -13,51 +11,44 @@ public sealed partial class MinerSettingsViewModel : ObservableObject
     private readonly string _minerId;
 
     [ObservableProperty] private int _targetTemp = 65;
-    [ObservableProperty] private bool _isSwitcherEnabled = true;
-    [ObservableProperty] private string _minPreset = "2050";
-    [ObservableProperty] private string _maxPreset = "4730";
-    [ObservableProperty] private int _riseTemp = 66;
-    [ObservableProperty] private int _decreaseTemp = 72;
+    [ObservableProperty] private string _coolingMode = "auto";
+    [ObservableProperty] private int _fanDuty = 50;
+    [ObservableProperty] private bool _quietMode = false;
+    [ObservableProperty] private int _restartTemp = 90;
+    [ObservableProperty] private int _startupDelay = 0;
     [ObservableProperty] private string _statusMessage = "";
-
-    public ObservableCollection<VnishAutotunePreset> AvailablePresets { get; } = new();
 
     public MinerSettingsViewModel(ServerApiClient api, string minerId)
     {
         _api = api;
         _minerId = minerId;
-        _ = LoadPresetsAsync();
-    }
-
-    private async Task LoadPresetsAsync()
-    {
-        try
-        {
-            var presets = await _api.GetPresetsAsync(_minerId);
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                AvailablePresets.Clear();
-                foreach (var p in presets) AvailablePresets.Add(p);
-            });
-        }
-        catch (Exception ex) { StatusMessage = $"Пресеты не загружены: {ex.Message}"; }
     }
 
     [RelayCommand]
     private async Task SaveAsync()
     {
-        if (Math.Abs(DecreaseTemp - RiseTemp) < 5)
-        {
-            StatusMessage = "Ошибка: разница между понижением и повышением должна быть не менее 5°C.";
-            return;
-        }
-
         try
         {
+            StatusMessage = "Сохранение температуры...";
             await _api.SetTargetTempAsync(_minerId, TargetTemp);
-            await _api.ConfigurePresetSwitcherAsync(_minerId, IsSwitcherEnabled, MinPreset, MaxPreset, RiseTemp, DecreaseTemp);
-            StatusMessage = "Настройки отправлены на сервер.";
+
+            StatusMessage = "Сохранение режима охлаждения...";
+            await _api.SetCoolingModeAsync(_minerId, CoolingMode, FanDuty);
+
+            StatusMessage = "Сохранение тихого режима...";
+            await _api.SetQuietModeAsync(_minerId, QuietMode);
+
+            StatusMessage = "Сохранение температуры рестарта...";
+            await _api.SetRestartTempAsync(_minerId, RestartTemp);
+
+            StatusMessage = "Сохранение задержки старта...";
+            await _api.SetStartupDelayAsync(_minerId, StartupDelay);
+
+            StatusMessage = "Настройки успешно сохранены!";
         }
-        catch (Exception ex) { StatusMessage = $"Ошибка: {ex.Message}"; }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Ошибка: {ex.Message}";
+        }
     }
 }

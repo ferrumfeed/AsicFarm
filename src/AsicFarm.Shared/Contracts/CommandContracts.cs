@@ -14,8 +14,10 @@ public enum MinerCommandKind
     RequestDetailedSnapshot,
     SetPools,
     SetTargetTemp,
-    ConfigurePresetSwitcher,
-    GetPresets
+    SetCoolingMode,
+    SetQuietMode,
+    SetRestartTemp,
+    SetStartupDelay
 }
 
 public sealed record MinerCommand(
@@ -25,7 +27,10 @@ public sealed record MinerCommand(
     int? PoolId = null,
     List<PoolConfigDto>? Pools = null,
     int? TargetTemp = null,
-    ConfigurePresetSwitcherRequest? PresetSwitcher = null
+    string? CoolingMode = null,
+    int? FanDuty = null,
+    bool? Enabled = null,
+    int? Value = null
 );
 
 public sealed record MinerCommandResult(

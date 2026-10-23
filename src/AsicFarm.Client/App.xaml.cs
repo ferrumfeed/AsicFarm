@@ -32,7 +32,7 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        // 1. Глобальные обработчики для отладки падений
+        // Глобальные обработчики для отладки падений
         DispatcherUnhandledException += (s, args) =>
         {
             MessageBox.Show(
@@ -60,37 +60,32 @@ public partial class App : Application
             args.SetObserved();
         };
 
-        // 2. КРИТИЧЕСКИ ВАЖНО: CurrentUICulture = en-US, чтобы WPF UI находил свои ресурсы.
-        // CurrentCulture = ru-RU, чтобы у тебя в коде форматирование чисел/дат было русским (если надо).
-        var displayCulture = CultureInfo.GetCultureInfo("ru-RU");
-        var uiCulture = CultureInfo.GetCultureInfo("en-US");
+        // Устанавливаем культуру потока
+        var culture = CultureInfo.GetCultureInfo("ru-RU");
+        CultureInfo.DefaultThreadCurrentCulture = culture;
+        CultureInfo.DefaultThreadCurrentUICulture = culture;
+        Thread.CurrentThread.CurrentCulture = culture;
+        Thread.CurrentThread.CurrentUICulture = culture;
 
-        CultureInfo.DefaultThreadCurrentCulture = displayCulture;
-        CultureInfo.DefaultThreadCurrentUICulture = uiCulture;
-        Thread.CurrentThread.CurrentCulture = displayCulture;
-        Thread.CurrentThread.CurrentUICulture = uiCulture;
-
-        // 3. Переопределяем Language для WPF (это то, что читает XmlLanguage).
-        // Используем en-US — он всегда есть в любой системе и не вызывает ошибок fallback.
-        var wpfLanguage = XmlLanguage.GetLanguage("en-US");
+        // Переопределяем Language для WPF
+        var lang = XmlLanguage.GetLanguage(CultureInfo.CurrentCulture.IetfLanguageTag);
 
         FrameworkElement.LanguageProperty.OverrideMetadata(
             typeof(FrameworkElement),
-            new FrameworkPropertyMetadata(wpfLanguage));
+            new FrameworkPropertyMetadata(lang));
 
-        // 4. Дополнительно для <Run> и других TextElement'ов (лечит ошибку в биндингах внутри TextBlock)
         FrameworkContentElement.LanguageProperty.OverrideMetadata(
             typeof(System.Windows.Documents.TextElement),
-            new FrameworkPropertyMetadata(wpfLanguage));
+            new FrameworkPropertyMetadata(lang));
 
-        // 5. Инициализация DI
+        // Инициализация DI
         try
         {
             var services = new ServiceCollection();
             services.AddLogging(b => b.AddDebug().SetMinimumLevel(LogLevel.Information));
-            services.AddSingleton<HttpClient>(_ => new HttpClient { Timeout = TimeSpan.FromMinutes(3) });
-            // В метод OnStartup, в блок инициализации сервисов, добавь:
-            services.AddTransient<MinerSettingsViewModel>();
+
+            // УВЕЛИЧЕН ТАЙМАУТ ДО 5 МИНУТ
+            services.AddSingleton<HttpClient>(_ => new HttpClient { Timeout = TimeSpan.FromMinutes(5) });
 
             services.AddSingleton<ServerApiClient>();
             services.AddSingleton<TelemetryHubClient>();

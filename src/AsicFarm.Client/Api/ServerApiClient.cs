@@ -267,4 +267,38 @@ public sealed record WatchdogDto(string Id, string Name, DateTimeOffset FirstSee
 public sealed record CommandResultDto(string RequestId, string MinerId, bool Success, string? Error, DateTimeOffset CompletedAt);
 public sealed record MetricsPointDto(DateTimeOffset Time, double HashrateGhs, int PcbMaxTempC, int ChipMaxTempC, int FanDutyPercent, int PowerConsumptionW);
 public sealed record MinerEventAnnotationDto(DateTimeOffset Time, string Kind, int? ChainId);
-public sealed record MetricsHistoryDto(List<MetricsPointDto> Points, List<MinerEventAnnotationDto> Annotations);
+public sealed record MetricsHistoryDto(List<MetricsPointDto> Points, List<MinerEventAnnotationDto> Annotations)
+{
+
+    public async Task SetCoolingModeAsync(string minerId, string mode, int fanDuty, CancellationToken ct = default)
+    {
+        using var req = NewRequest(HttpMethod.Post, $"api/v1/miners/{Uri.EscapeDataString(minerId)}/settings/cooling-mode");
+        req.Content = JsonContent.Create(new { Mode = mode, FanDuty = fanDuty }, options: JsonOpts);
+        using var resp = await SendAsync(req, ct);
+        if (!resp.IsSuccessStatusCode) throw new InvalidOperationException($"HTTP {(int)resp.StatusCode}");
+    }
+
+    public async Task SetQuietModeAsync(string minerId, bool enabled, CancellationToken ct = default)
+    {
+        using var req = NewRequest(HttpMethod.Post, $"api/v1/miners/{Uri.EscapeDataString(minerId)}/settings/quiet-mode");
+        req.Content = JsonContent.Create(new { Enabled = enabled }, options: JsonOpts);
+        using var resp = await SendAsync(req, ct);
+        if (!resp.IsSuccessStatusCode) throw new InvalidOperationException($"HTTP {(int)resp.StatusCode}");
+    }
+
+    public async Task SetRestartTempAsync(string minerId, int temp, CancellationToken ct = default)
+    {
+        using var req = NewRequest(HttpMethod.Post, $"api/v1/miners/{Uri.EscapeDataString(minerId)}/settings/restart-temp");
+        req.Content = JsonContent.Create(new { Temp = temp }, options: JsonOpts);
+        using var resp = await SendAsync(req, ct);
+        if (!resp.IsSuccessStatusCode) throw new InvalidOperationException($"HTTP {(int)resp.StatusCode}");
+    }
+
+    public async Task SetStartupDelayAsync(string minerId, int seconds, CancellationToken ct = default)
+    {
+        using var req = NewRequest(HttpMethod.Post, $"api/v1/miners/{Uri.EscapeDataString(minerId)}/settings/startup-delay");
+        req.Content = JsonContent.Create(new { Seconds = seconds }, options: JsonOpts);
+        using var resp = await SendAsync(req, ct);
+        if (!resp.IsSuccessStatusCode) throw new InvalidOperationException($"HTTP {(int)resp.StatusCode}");
+    }
+};

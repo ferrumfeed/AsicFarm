@@ -4,7 +4,6 @@ using AsicFarm.Server.Endpoints;
 using AsicFarm.Server.Hubs;
 using AsicFarm.Server.Services;
 using AsicFarm.Shared.Contracts;
-using AsicFarm.Shared.Vnish;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -46,7 +45,6 @@ try
     builder.Services.AddSingleton<SettingsService>();
     builder.Services.AddSingleton<TelegramNotifier>();
     builder.Services.AddSingleton<DetailedSnapshotBroker>();
-    builder.Services.AddSingleton<PresetBroker>(); // Брокер для пресетов
     builder.Services.AddHostedService<ScheduleRunner>();
     builder.Services.AddHostedService<AlertRunner>();
     builder.Services.AddHostedService<AutoActionRunner>();
@@ -76,28 +74,24 @@ try
     app.MapSettings();
     app.MapAutoActions();
 
-    // ================= ПУЛЫ =================
+    // ПУЛЫ
     app.MapPost("/api/v1/miners/{minerId}/pools", async (
         string minerId, SetPoolsRequest request, AsicFarmDbContext db, IHubContext<ControlHub> hub, ILogger<Program> log) =>
     {
         try
         {
-            log.LogInformation("POST /pools: miner={MinerId}, pools={Count}", minerId, request.Pools.Count);
             var miner = await db.Miners.FirstOrDefaultAsync(m => m.Id == minerId);
             if (miner == null || string.IsNullOrEmpty(miner.WatchdogId)) return Results.NotFound();
-            var groupName = ControlHub.GroupName(miner.WatchdogId);
-            await hub.Clients.Group(groupName).SendAsync("SetPools", minerId, request.Pools);
-            log.LogInformation("POST /pools: sent to group '{GroupName}'", groupName);
+            await hub.Clients.Group(ControlHub.GroupName(miner.WatchdogId)).SendAsync("SetPools", minerId, request.Pools);
             return Results.Ok();
         }
-        catch (Exception ex) { log.LogError(ex, "POST /pools: FAILED"); return Results.Problem(ex.Message); }
+        catch (Exception ex) { return Results.Problem(ex.Message); }
     });
 
-    // ================= НАСТРОЙКИ =================
+    // НАСТРОЙКИ
     app.MapPost("/api/v1/miners/{minerId}/settings/target-temp", async (
-        string minerId, SetTargetTempRequest req, AsicFarmDbContext db, IHubContext<ControlHub> hub, ILogger<Program> log) =>
+        string minerId, SetTargetTempRequest req, AsicFarmDbContext db, IHubContext<ControlHub> hub) =>
     {
-        log.LogInformation("Endpoint HIT: target-temp miner={MinerId}, temp={Temp}", minerId, req.TargetTemp);
         var miner = await db.Miners.FirstOrDefaultAsync(m => m.Id == minerId);
         if (miner == null || string.IsNullOrEmpty(miner.WatchdogId)) return Results.NotFound();
         var cmd = new MinerCommand(Guid.NewGuid().ToString("N"), minerId, MinerCommandKind.SetTargetTemp) { TargetTemp = req.TargetTemp };
@@ -105,50 +99,43 @@ try
         return Results.Ok();
     });
 
-    app.MapPost("/api/v1/miners/{minerId}/settings/preset-switcher", async (
-        string minerId, ConfigurePresetSwitcherRequest req, AsicFarmDbContext db, IHubContext<ControlHub> hub, ILogger<Program> log) =>
+    app.MapPost("/api/v1/miners/{minerId}/settings/cooling-mode", async (
+        string minerId, SetCoolingModeRequest req, AsicFarmDbContext db, IHubContext<ControlHub> hub) =>
     {
-        log.LogInformation("Endpoint HIT: preset-switcher miner={MinerId}", minerId);
         var miner = await db.Miners.FirstOrDefaultAsync(m => m.Id == minerId);
         if (miner == null || string.IsNullOrEmpty(miner.WatchdogId)) return Results.NotFound();
-        var cmd = new MinerCommand(Guid.NewGuid().ToString("N"), minerId, MinerCommandKind.ConfigurePresetSwitcher) { PresetSwitcher = req };
+        var cmd = new MinerCommand(Guid.NewGuid().ToString("N"), minerId, MinerCommandKind.SetCoolingMode) { CoolingMode = req.Mode, FanDuty = req.FanDuty };
         await hub.Clients.Group(ControlHub.GroupName(miner.WatchdogId)).SendAsync("ExecuteCommand", new ExecuteCommandMessage(cmd));
         return Results.Ok();
     });
 
-    // ================= ПРЕСЕТЫ (с ожиданием ответа) =================
-    app.MapGet("/api/v1/miners/{minerId}/presets", async (
-        string minerId, AsicFarmDbContext db, IHubContext<ControlHub> hub, PresetBroker broker, ILogger<Program> log) =>
+    app.MapPost("/api/v1/miners/{minerId}/settings/quiet-mode", async (
+        string minerId, SetQuietModeRequest req, AsicFarmDbContext db, IHubContext<ControlHub> hub) =>
     {
         var miner = await db.Miners.FirstOrDefaultAsync(m => m.Id == minerId);
         if (miner == null || string.IsNullOrEmpty(miner.WatchdogId)) return Results.NotFound();
-
-        var requestId = Guid.NewGuid().ToString("N");
-        var tcs = broker.Register(requestId);
-
-        var cmd = new MinerCommand(requestId, minerId, MinerCommandKind.GetPresets);
+        var cmd = new MinerCommand(Guid.NewGuid().ToString("N"), minerId, MinerCommandKind.SetQuietMode) { Enabled = req.Enabled };
         await hub.Clients.Group(ControlHub.GroupName(miner.WatchdogId)).SendAsync("ExecuteCommand", new ExecuteCommandMessage(cmd));
-
-        // Увеличиваем таймаут до 90 секунд, потому что ответ от VNISH очень большой
-        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(90));
-        var completed = await Task.WhenAny(tcs.Task, Task.Delay(Timeout.Infinite, timeoutCts.Token));
-
-        if (completed == tcs.Task)
-        {
-            var presets = await tcs.Task;
-            log.LogInformation("Presets for {MinerId}: {Count} items", minerId, presets.Count);
-            return Results.Ok(presets);
-        }
-
-        broker.Remove(requestId);
-        log.LogWarning("Timeout waiting for presets from {MinerId}", minerId);
-        return Results.Json(new { error = "Timeout waiting for presets" }, statusCode: 504);
+        return Results.Ok();
     });
 
-    // ================= ПРИЕМ ПРЕСЕТОВ ОТ ВАТЧДОГА =================
-    app.MapPost("/api/v1/ingest/presets", (PresetsResponse response, PresetBroker broker) =>
+    app.MapPost("/api/v1/miners/{minerId}/settings/restart-temp", async (
+        string minerId, SetRestartTempRequest req, AsicFarmDbContext db, IHubContext<ControlHub> hub) =>
     {
-        broker.Complete(response.RequestId, response.Presets);
+        var miner = await db.Miners.FirstOrDefaultAsync(m => m.Id == minerId);
+        if (miner == null || string.IsNullOrEmpty(miner.WatchdogId)) return Results.NotFound();
+        var cmd = new MinerCommand(Guid.NewGuid().ToString("N"), minerId, MinerCommandKind.SetRestartTemp) { Value = req.Temp };
+        await hub.Clients.Group(ControlHub.GroupName(miner.WatchdogId)).SendAsync("ExecuteCommand", new ExecuteCommandMessage(cmd));
+        return Results.Ok();
+    });
+
+    app.MapPost("/api/v1/miners/{minerId}/settings/startup-delay", async (
+        string minerId, SetStartupDelayRequest req, AsicFarmDbContext db, IHubContext<ControlHub> hub) =>
+    {
+        var miner = await db.Miners.FirstOrDefaultAsync(m => m.Id == minerId);
+        if (miner == null || string.IsNullOrEmpty(miner.WatchdogId)) return Results.NotFound();
+        var cmd = new MinerCommand(Guid.NewGuid().ToString("N"), minerId, MinerCommandKind.SetStartupDelay) { Value = req.Seconds };
+        await hub.Clients.Group(ControlHub.GroupName(miner.WatchdogId)).SendAsync("ExecuteCommand", new ExecuteCommandMessage(cmd));
         return Results.Ok();
     });
 

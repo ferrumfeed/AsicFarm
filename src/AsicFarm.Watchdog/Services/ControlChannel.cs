@@ -36,7 +36,7 @@ public sealed class ControlChannel : BackgroundService
             KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests,
         };
 
-        _http = new HttpClient(handler) { Timeout = TimeSpan.FromMinutes(3) };
+        _http = new HttpClient(handler) { Timeout = TimeSpan.FromMinutes(5) };
 
         if (!string.IsNullOrWhiteSpace(_opt.ServerUrl))
         {
@@ -170,19 +170,25 @@ public sealed class ControlChannel : BackgroundService
                     await client.SetTargetTemperatureAsync(cmd.TargetTemp.Value, ct);
                     break;
 
-                case MinerCommandKind.ConfigurePresetSwitcher:
-                    if (cmd.PresetSwitcher is null) throw new InvalidOperationException("PresetSwitcher required");
-                    await client.ConfigurePresetSwitcherAsync(cmd.PresetSwitcher.Enabled, cmd.PresetSwitcher.MinPreset, cmd.PresetSwitcher.MaxPreset, cmd.PresetSwitcher.RiseTemp, cmd.PresetSwitcher.DecreaseTemp, ct);
+                case MinerCommandKind.SetCoolingMode:
+                    if (cmd.CoolingMode is null) throw new InvalidOperationException("CoolingMode required");
+                    await client.SetCoolingModeAsync(cmd.CoolingMode, cmd.FanDuty ?? 50, ct);
                     break;
 
-                case MinerCommandKind.GetPresets:
-                    var presets = await client.GetAutotunePresetsAsync(ct);
-                    // Отправляем обратно на сервер
-                    using (var resp = await _http.PostAsJsonAsync("api/v1/ingest/presets", new PresetsResponse(cmd.RequestId, presets), WireJson.Options, ct))
-                    {
-                        if (!resp.IsSuccessStatusCode) _log.LogWarning("Failed to post presets: {Status}", resp.StatusCode);
-                    }
-                    return result with { Success = true, Error = null, CompletedAt = DateTimeOffset.UtcNow };
+                case MinerCommandKind.SetQuietMode:
+                    if (cmd.Enabled is null) throw new InvalidOperationException("Enabled required");
+                    await client.SetQuietModeAsync(cmd.Enabled.Value, ct);
+                    break;
+
+                case MinerCommandKind.SetRestartTemp:
+                    if (cmd.Value is null) throw new InvalidOperationException("Value required");
+                    await client.SetRestartTempAsync(cmd.Value.Value, ct);
+                    break;
+
+                case MinerCommandKind.SetStartupDelay:
+                    if (cmd.Value is null) throw new InvalidOperationException("Value required");
+                    await client.SetStartupDelayAsync(cmd.Value.Value, ct);
+                    break;
 
                 default: throw new InvalidOperationException($"Unknown command: {cmd.Kind}");
             }

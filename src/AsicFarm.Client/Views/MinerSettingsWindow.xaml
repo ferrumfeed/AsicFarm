@@ -2,69 +2,34 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-        Title="Настройки майнера" Height="600" Width="450"
+        Title="Настройки майнера" Height="550" Width="450"
         Background="{DynamicResource ApplicationBackgroundBrush}"
         Foreground="{DynamicResource TextFillColorPrimaryBrush}">
     <Grid Margin="20">
         <StackPanel>
-            <TextBlock Text="Управление профилями" FontSize="18" FontWeight="Bold" Margin="0,0,0,20"/>
+            <TextBlock Text="Охлаждение" FontSize="16" FontWeight="Bold" Margin="0,0,0,15"/>
 
-            <TextBlock Text="Целевая температура (°C)" Margin="0,0,0,4"/>
-            <ui:TextBox Text="{Binding TargetTemp, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,20"/>
+            <TextBlock Text="Целевая температура (°C)" FontSize="12" Margin="0,0,0,4"/>
+            <ui:TextBox Text="{Binding TargetTemp, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,15"/>
 
-            <TextBlock Text="Авто-переключение профилей" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10"/>
+            <TextBlock Text="Режим охлаждения" FontSize="12" Margin="0,0,0,4"/>
+            <ComboBox SelectedValue="{Binding CoolingMode}" Margin="0,0,0,15">
+                <ComboBoxItem Content="Auto (автоматически)" Tag="auto" IsSelected="True"/>
+                <ComboBoxItem Content="Manual (вручную)" Tag="manual"/>
+            </ComboBox>
 
-            <CheckBox Content="Включено" IsChecked="{Binding IsSwitcherEnabled}" Margin="0,0,0,10"/>
+            <TextBlock Text="Обороты вентиляторов (если Manual, %)" FontSize="12" Margin="0,0,0,4"/>
+            <ui:TextBox Text="{Binding FanDuty, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,15"/>
 
-            <Grid Margin="0,0,0,10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
+            <CheckBox Content="Тихий режим (Quiet Mode)" IsChecked="{Binding QuietMode}" Margin="0,0,0,20"/>
 
-                <!-- Мин. профиль -->
-                <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                    <TextBlock Text="Мин. профиль" FontSize="12"/>
-                    <ComboBox ItemsSource="{Binding AvailablePresets}" 
-                              DisplayMemberPath="Pretty" 
-                              SelectedValuePath="Name"
-                              SelectedValue="{Binding MinPreset}" 
-                              Margin="0,5,0,0"
-                              IsEditable="False"/>
-                </StackPanel>
+            <TextBlock Text="Безопасность" FontSize="16" FontWeight="Bold" Margin="0,0,0,15"/>
 
-                <!-- Макс. профиль -->
-                <StackPanel Grid.Column="1">
-                    <TextBlock Text="Макс. профиль" FontSize="12"/>
-                    <ComboBox ItemsSource="{Binding AvailablePresets}" 
-                              DisplayMemberPath="Pretty" 
-                              SelectedValuePath="Name"
-                              SelectedValue="{Binding MaxPreset}" 
-                              Margin="0,5,0,0"
-                              IsEditable="False"/>
-                </StackPanel>
-            </Grid>
+            <TextBlock Text="Температура аварийного рестарта (°C)" FontSize="12" Margin="0,0,0,4"/>
+            <ui:TextBox Text="{Binding RestartTemp, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,15"/>
 
-            <Grid Margin="0,0,0,10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-
-                <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                    <TextBlock Text="Повышать при (°C)" FontSize="12"/>
-                    <ui:TextBox Text="{Binding RiseTemp, UpdateSourceTrigger=PropertyChanged}" />
-                </StackPanel>
-
-                <StackPanel Grid.Column="1">
-                    <TextBlock Text="Понижать при (°C)" FontSize="12"/>
-                    <ui:TextBox Text="{Binding DecreaseTemp, UpdateSourceTrigger=PropertyChanged}" />
-                </StackPanel>
-            </Grid>
-
-            <TextBlock Text="Разница между понижением и повышением должна быть не менее 5°C." 
-                       FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" 
-                       TextWrapping="Wrap" Margin="0,0,0,20"/>
+            <TextBlock Text="Задержка старта (сек)" FontSize="12" Margin="0,0,0,4"/>
+            <ui:TextBox Text="{Binding StartupDelay, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,20"/>
 
             <ui:Button Content="Сохранить" Icon="{ui:SymbolIcon Save24}" Appearance="Primary" Margin="0,0,0,10" Command="{Binding SaveCommand}"/>
             <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" TextWrapping="Wrap"/>
