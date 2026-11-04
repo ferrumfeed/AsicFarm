@@ -33,6 +33,14 @@ public interface IAntminerClient : IAsyncDisposable
     Task SwitchPoolAsync(int poolId, CancellationToken ct);
     Task SetPoolsAsync(List<PoolConfigDto> pools, CancellationToken ct);
     Task SetTargetTemperatureAsync(int targetTemp, CancellationToken ct);
+
+    // --- Управление охлаждением и безопасностью ---
+    Task SetCoolingModeAsync(string mode, int fanDuty, CancellationToken ct);
+    Task SetQuietModeAsync(bool enabled, CancellationToken ct);
+    Task SetRestartTempAsync(int temp, CancellationToken ct);
+    Task SetStartupDelayAsync(int seconds, CancellationToken ct);
+
+    // --- Пресеты и переключатель пресетов ---
     Task ConfigurePresetSwitcherAsync(bool enabled, string minPreset, string maxPreset, int riseTemp, int decreaseTemp, CancellationToken ct);
-    Task<List<VnishAutotunePreset>> GetAutotunePresetsAsync(CancellationToken ct); // НОВЫЙ МЕТОД
+    Task<List<VnishAutotunePreset>> GetAutotunePresetsAsync(CancellationToken ct);
 }

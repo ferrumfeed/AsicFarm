@@ -267,7 +267,7 @@ public sealed class VnishAntminerClient : IAntminerClient
         }
     }
 
-    // ====================== НОВЫЕ МЕТОДЫ ДЛЯ ОХЛАЖДЕНИЯ И БЕЗОПАСНОСТИ ======================
+    // ====================== ОХЛАЖДЕНИЕ И БЕЗОПАСНОСТЬ ======================
     public async Task SetCoolingModeAsync(string mode, int fanDuty, CancellationToken ct)
     {
         _log.LogInformation("Vnish {Host}: SetCoolingMode({Mode}, fan={Fan}%)", Host, mode, fanDuty);
@@ -300,6 +300,41 @@ public sealed class VnishAntminerClient : IAntminerClient
         _log.LogInformation("Vnish {Host}: SetStartupDelay({Sec} сек)", Host, seconds);
         var payload = new { miner = new { misc = new { max_startup_delay_time = seconds } } };
         await PostJsonAsync(VnishEndpoints.Settings, payload, ct);
+    }
+
+    // ====================== ПЕРЕКЛЮЧАТЕЛЬ ПРЕСЕТОВ ======================
+    public async Task ConfigurePresetSwitcherAsync(bool enabled, string minPreset, string maxPreset, int riseTemp, int decreaseTemp, CancellationToken ct)
+    {
+        _log.LogInformation("Vnish {Host}: ConfigurePresetSwitcher(enabled={Enabled}, min={Min}, max={Max}, rise={Rise}, dec={Dec})",
+            Host, enabled, minPreset, maxPreset, riseTemp, decreaseTemp);
+
+        var payload = new
+        {
+            miner = new
+            {
+                autotune = new
+                {
+                    preset_switcher = new
+                    {
+                        enabled,
+                        min_preset = minPreset,
+                        max_preset = maxPreset,
+                        rise_temp = riseTemp,
+                        decrease_temp = decreaseTemp
+                    }
+                }
+            }
+        };
+
+        var result = await PostJsonAsync<object, VnishSaveConfigResult>(VnishEndpoints.Settings, payload, ct);
+        if (result?.RestartRequired == true) await RestartMiningAsync(ct);
+    }
+
+    // ====================== СПИСОК ПРЕСЕТОВ ======================
+    public async Task<List<VnishAutotunePreset>> GetAutotunePresetsAsync(CancellationToken ct)
+    {
+        var presets = await GetAsyncList<VnishAutotunePreset>(VnishEndpoints.AutotunePresets, ct).ConfigureAwait(false);
+        return presets ?? new List<VnishAutotunePreset>();
     }
 
     // ============================ HTTP CORE ==============================

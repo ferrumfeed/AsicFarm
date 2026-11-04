@@ -260,16 +260,8 @@ public sealed class ServerApiClient
         if (!resp.IsSuccessStatusCode) throw new InvalidOperationException($"HTTP {(int)resp.StatusCode}");
         return await resp.Content.ReadFromJsonAsync<List<VnishAutotunePreset>>(JsonOpts, ct) ?? new();
     }
-}
 
-public sealed record MinerDto(string MinerId, string Ip, string Mac, string Hostname, string Model, string ModelCode, string Firmware, string WatchdogId, DateTimeOffset FirstSeen, DateTimeOffset LastSeen, MinerSnapshot? Snapshot);
-public sealed record WatchdogDto(string Id, string Name, DateTimeOffset FirstSeen, DateTimeOffset LastSeen, int TotalSnapshotsReceived);
-public sealed record CommandResultDto(string RequestId, string MinerId, bool Success, string? Error, DateTimeOffset CompletedAt);
-public sealed record MetricsPointDto(DateTimeOffset Time, double HashrateGhs, int PcbMaxTempC, int ChipMaxTempC, int FanDutyPercent, int PowerConsumptionW);
-public sealed record MinerEventAnnotationDto(DateTimeOffset Time, string Kind, int? ChainId);
-public sealed record MetricsHistoryDto(List<MetricsPointDto> Points, List<MinerEventAnnotationDto> Annotations)
-{
-
+    // ============== COOLING / SAFETY (были ошибочно внутри MetricsHistoryDto) ==============
     public async Task SetCoolingModeAsync(string minerId, string mode, int fanDuty, CancellationToken ct = default)
     {
         using var req = NewRequest(HttpMethod.Post, $"api/v1/miners/{Uri.EscapeDataString(minerId)}/settings/cooling-mode");
@@ -301,4 +293,12 @@ public sealed record MetricsHistoryDto(List<MetricsPointDto> Points, List<MinerE
         using var resp = await SendAsync(req, ct);
         if (!resp.IsSuccessStatusCode) throw new InvalidOperationException($"HTTP {(int)resp.StatusCode}");
     }
-};
+}
+
+// ============== DTO ==============
+public sealed record MinerDto(string MinerId, string Ip, string Mac, string Hostname, string Model, string ModelCode, string Firmware, string WatchdogId, DateTimeOffset FirstSeen, DateTimeOffset LastSeen, MinerSnapshot? Snapshot);
+public sealed record WatchdogDto(string Id, string Name, DateTimeOffset FirstSeen, DateTimeOffset LastSeen, int TotalSnapshotsReceived);
+public sealed record CommandResultDto(string RequestId, string MinerId, bool Success, string? Error, DateTimeOffset CompletedAt);
+public sealed record MetricsPointDto(DateTimeOffset Time, double HashrateGhs, int PcbMaxTempC, int ChipMaxTempC, int FanDutyPercent, int PowerConsumptionW);
+public sealed record MinerEventAnnotationDto(DateTimeOffset Time, string Kind, int? ChainId);
+public sealed record MetricsHistoryDto(List<MetricsPointDto> Points, List<MinerEventAnnotationDto> Annotations);

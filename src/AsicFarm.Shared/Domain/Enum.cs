@@ -21,4 +21,4 @@ public enum FanState { Ok, Lost }
 
 public enum FanControlMode { Auto, Manual, Immersion }
 
-public enum FirmwareKind { Unknown, Vnish, Stock }
+public enum FirmwareKind { Unknown, Vnish, Whatsminer, Stock }

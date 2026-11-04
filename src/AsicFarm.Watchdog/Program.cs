@@ -36,6 +36,15 @@ try
     builder.Services.Configure<WatchdogOptions>(
         builder.Configuration.GetSection(WatchdogOptions.SectionName));
 
+    // >>> SSTP
+    builder.Services.Configure<SstpClientOptions>(
+        builder.Configuration.GetSection("SstpClient"));
+    builder.Services.AddSingleton<SstpClientWrapper>();
+
+    // >>> Фабрика клиентов и реестр прошивок (Vnish + Whatsminer)
+    builder.Services.AddSingleton<MinerClientFactory>();
+    builder.Services.AddSingleton<MinerFirmwareRegistry>();
+
     builder.Services.AddSingleton<MinerRegistry>();
     builder.Services.AddSingleton<MinerHostRegistry>();
 
@@ -46,11 +55,38 @@ try
     builder.Services.AddHostedService<ControlChannel>();
 
     var host = builder.Build();
-    await host.RunAsync();
+
+    // >>> SSTP: поднимаем туннель ДО запуска воркеров
+    var sstp = host.Services.GetRequiredService<SstpClientWrapper>();
+    try
+    {
+        await sstp.StartAsync(CancellationToken.None);
+    }
+    catch (Exception ex)
+    {
+        var log = host.Services.GetRequiredService<ILogger<Program>>();
+        log.LogError(ex, "Failed to start SSTP tunnel");
+        if (sstp.IsEnabled)
+        {
+            await sstp.DisposeAsync();
+            return 1;
+        }
+    }
+
+    try
+    {
+        await host.RunAsync();
+        return 0;
+    }
+    finally
+    {
+        await sstp.DisposeAsync();
+    }
 }
 catch (Exception ex)
 {
     Log.Fatal(ex, "Host terminated unexpectedly");
+    return 1;
 }
 finally
 {

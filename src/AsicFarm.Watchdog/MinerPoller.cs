@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using AsicFarm.MinerClients.Vnish;
 using AsicFarm.Shared.Contracts;
 using AsicFarm.Shared.Domain;
 using AsicFarm.Shared.Exceptions;
@@ -16,6 +15,8 @@ public sealed class MinerPoller : BackgroundService
     private readonly WatchdogOptions _opt;
     private readonly MinerRegistry _registry;
     private readonly MinerHostRegistry _hostRegistry;
+    private readonly MinerFirmwareRegistry _firmware;
+    private readonly MinerClientFactory _factory;
     private readonly ServerClient _server;
     private readonly ConcurrentDictionary<string, IAntminerClient> _clients = new();
     private readonly ConcurrentDictionary<string, MinerSnapshot> _lastSnapshots = new();
@@ -25,12 +26,16 @@ public sealed class MinerPoller : BackgroundService
         ILogger<MinerPoller> log,
         MinerRegistry registry,
         MinerHostRegistry hostRegistry,
+        MinerFirmwareRegistry firmware,
+        MinerClientFactory factory,
         ServerClient server)
     {
         _opt = options.Value;
         _log = log;
         _registry = registry;
         _hostRegistry = hostRegistry;
+        _firmware = firmware;
+        _factory = factory;
         _server = server;
     }
 
@@ -107,8 +112,8 @@ public sealed class MinerPoller : BackgroundService
             if (_opt.VerboseSnapshotLog)
             {
                 _log.LogInformation(
-                    "{Host} | {Model} | {State} | {Hr:F0} GH/s ({Pct:F1}%) | chip {ChipMin}..{ChipMax}C | {Power}W | {Fans} fans {Duty}%",
-                    host, snap.Model, snap.State,
+                    "{Host} | {Fw} | {Model} | {State} | {Hr:F0} GH/s ({Pct:F1}%) | chip {ChipMin}..{ChipMax}C | {Power}W | {Fans} fans {Duty}%",
+                    host, snap.Firmware, snap.Model, snap.State,
                     snap.HashrateRealtimeGhs, snap.HashratePercent,
                     snap.ChipTemp.Min, snap.ChipTemp.Max,
                     snap.PowerConsumptionW,
@@ -144,12 +149,15 @@ public sealed class MinerPoller : BackgroundService
     private IAntminerClient CreateClient(string host)
     {
         var (hostname, port) = ParseHost(host);
-        return new VnishAntminerClient(new VnishAntminerClientOptions
-        {
-            Host = hostname,
-            Port = port,
-            Password = _opt.Password,
-        });
+        var fw = _firmware.Get(host);
+
+        // Обратная совместимость: если прошивка ещё не определена — считаем VNISH,
+        // как было до добавления Whatsminer.
+        if (fw == FirmwareKind.Unknown)
+            fw = FirmwareKind.Vnish;
+
+        _log.LogInformation("Creating client for {Host} ({Fw})", host, fw);
+        return _factory.Create(hostname, fw, port);
     }
 
     private static (string host, int port) ParseHost(string raw)

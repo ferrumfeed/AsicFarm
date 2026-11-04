@@ -1,5 +1,7 @@
 ﻿using System.Net;
 using System.Net.Http;
+using AsicFarm.MinerClients.Whatsminer;
+using AsicFarm.Shared.Domain;
 using AsicFarm.Shared.Vnish;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -11,15 +13,18 @@ public sealed class SubnetScanner : BackgroundService
 {
     private readonly WatchdogOptions _opt;
     private readonly MinerHostRegistry _registry;
+    private readonly MinerFirmwareRegistry _firmware;
     private readonly ILogger<SubnetScanner> _log;
 
     public SubnetScanner(
         IOptions<WatchdogOptions> options,
         MinerHostRegistry registry,
+        MinerFirmwareRegistry firmware,
         ILogger<SubnetScanner> log)
     {
         _opt = options.Value;
         _registry = registry;
+        _firmware = firmware;
         _log = log;
     }
 
@@ -27,6 +32,20 @@ public sealed class SubnetScanner : BackgroundService
     {
         _registry.AddRange(_opt.Hosts);
         _log.LogInformation("Static hosts loaded: {Count}", _opt.Hosts.Count);
+
+        if (_opt.Hosts.Count > 0)
+        {
+            await Parallel.ForEachAsync(_opt.Hosts,
+                new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, _opt.ScanConcurrency), CancellationToken = stoppingToken },
+                async (host, ct) =>
+                {
+                    var fw = await DetectFirmwareAsync(host, ct).ConfigureAwait(false);
+                    if (fw != FirmwareKind.Unknown)
+                        _firmware.Set(host, fw);
+                    else
+                        _log.LogDebug("Static host {Host}: firmware not detected, will default to Vnish", host);
+                }).ConfigureAwait(false);
+        }
 
         if (_opt.Subnets.Count > 0)
             await ScanAllAsync(stoppingToken);
@@ -76,11 +95,13 @@ public sealed class SubnetScanner : BackgroundService
 
         await Parallel.ForEachAsync(candidates, parallel, async (ip, innerCt) =>
         {
-            if (await ProbeAsync(ip, innerCt).ConfigureAwait(false))
-            {
-                _registry.Add(ip);
-                Interlocked.Increment(ref found);
-            }
+            var fw = await DetectFirmwareAsync(ip, innerCt).ConfigureAwait(false);
+            if (fw == FirmwareKind.Unknown) return;
+
+            _registry.Add(ip);
+            _firmware.Set(ip, fw);
+            Interlocked.Increment(ref found);
+            _log.LogInformation("Detected {Fw} at {Ip}", fw, ip);
         }).ConfigureAwait(false);
 
         sw.Stop();
@@ -88,34 +109,63 @@ public sealed class SubnetScanner : BackgroundService
             sw.Elapsed.TotalSeconds, found, _registry.AllHosts.Count);
     }
 
-    private async Task<bool> ProbeAsync(string ip, CancellationToken ct)
+    private async Task<FirmwareKind> DetectFirmwareAsync(string rawHost, CancellationToken ct)
     {
-        using var handler = new SocketsHttpHandler
-        {
-            ConnectTimeout = _opt.ScanTimeout,
-            PooledConnectionLifetime = TimeSpan.FromSeconds(30),
-        };
-        using var http = new HttpClient(handler) { Timeout = _opt.ScanTimeout };
+        var (hostname, port) = ParseHost(rawHost);
 
+        // 1. VNISH — HTTP GET /api/v1/info (лёгкий, укладывается в ScanTimeout)
         try
         {
-            var url = $"http://{ip}/api/v1/info";
+            using var handler = new SocketsHttpHandler
+            {
+                ConnectTimeout = _opt.ScanTimeout,
+                PooledConnectionLifetime = TimeSpan.FromSeconds(30),
+            };
+            using var http = new HttpClient(handler) { Timeout = _opt.ScanTimeout };
+
+            var authority = port is 80 or 443 ? hostname : $"{hostname}:{port}";
+            var url = $"http://{authority}/api/v1/info";
+
             using var resp = await http.GetAsync(url, HttpCompletionOption.ResponseContentRead, ct)
                                       .ConfigureAwait(false);
 
-            if (!resp.IsSuccessStatusCode) return false;
+            if (resp.IsSuccessStatusCode)
+            {
+                await using var stream = await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+                var info = await System.Text.Json.JsonSerializer
+                    .DeserializeAsync<VnishInfo>(stream, VnishJson.Options, ct)
+                    .ConfigureAwait(false);
 
-            await using var stream = await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-            var info = await System.Text.Json.JsonSerializer
-                .DeserializeAsync<VnishInfo>(stream, VnishJson.Options, ct)
-                .ConfigureAwait(false);
-
-            return info?.System?.Network is not null;
+                if (info?.System?.Network is not null)
+                    return FirmwareKind.Vnish;
+            }
         }
-        catch
+        catch { /* не VNISH */ }
+
+        // 2. Whatsminer — TCP 4433 + get.device.info
+        // ВАЖНО: ScanTimeout (800 мс) слишком мал для TCP+JSON через SSTP-туннель.
+        // Даём фиксированные 3 секунды.
+        try
         {
-            return false;
+            await using var wm = new WhatsminerAntminerClient(
+                hostname,
+                timeout: TimeSpan.FromSeconds(3));
+
+            var probe = await wm.ProbeAsync(ct).ConfigureAwait(false);
+            if (probe.IsReachable && probe.Firmware == FirmwareKind.Whatsminer)
+                return FirmwareKind.Whatsminer;
         }
+        catch { /* не Whatsminer */ }
+
+        return FirmwareKind.Unknown;
+    }
+
+    private static (string host, int port) ParseHost(string raw)
+    {
+        var colon = raw.LastIndexOf(':');
+        if (colon > 0 && int.TryParse(raw.AsSpan(colon + 1), out var p))
+            return (raw[..colon], p);
+        return (raw, 80);
     }
 
     /// Разворачивает CIDR (192.168.2.0/24) в список IP. Пропускает сеть и broadcast.

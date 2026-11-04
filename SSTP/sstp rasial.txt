@@ -1,0 +1,13 @@
+# 1. Создаём подключение
+Add-VpnConnection -Name "AsicFarm-SSTP" `
+  -ServerAddress "your-object.keenetic.link" `
+  -TunnelType Sstp `
+  -EncryptionLevel Required `
+  -AuthenticationMethod MSChapv2 `
+  -RememberCredential
+
+# 2. ОТКЛЮЧАЕМ перехват default gateway — весь обычный трафик пойдёт мимо VPN
+Set-VpnConnection -Name "AsicFarm-SSTP" -SplitTunneling $true
+
+# 3. Добавляем маршрут ТОЛЬКО до подсети асиков через VPN
+Add-VpnConnectionRoute -ConnectionName "AsicFarm-SSTP" -DestinationPrefix "192.168.2.0/24"
