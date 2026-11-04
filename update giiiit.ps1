@@ -6,4 +6,4 @@ Write-Host "—оздаю коммит..." -ForegroundColor Cyan
 git commit -m "Auto-update: $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
 
 Write-Host "ќтправл€ю на GitHub..." -ForegroundColor Cyan
-git push origin main
+git push origin master
