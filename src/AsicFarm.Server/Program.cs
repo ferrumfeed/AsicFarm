@@ -69,6 +69,7 @@ try
     app.MapMiners();
     app.MapIngest();
     app.MapCommands();
+    app.MapMinerSettings();   // ← NEW: /api/v1/miners/{id}/settings/preset-switcher + /presets
     app.MapSchedules();
     app.MapAlerts();
     app.MapSettings();

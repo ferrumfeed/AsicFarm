@@ -1,0 +1,704 @@
+﻿{
+  "settings": {
+    "miner": {
+      "cooling": {
+        "mode": {
+          "name": "auto",
+          "param": 65
+        },
+        "fan_min_count": 4,
+        "fan_min_duty": 0,
+        "fan_max_duty": 60
+      },
+      "misc": {
+        "asic_boost": false,
+        "restart_hashrate": 0,
+        "restart_temp": 90,
+        "disable_restart_unbalanced": false,
+        "disable_chain_break_protection": false,
+        "max_restart_attempts": 3,
+        "bitmain_disable_volt_comp": true,
+        "quick_start": false,
+        "higher_volt_offset": 0,
+        "tuner_bad_chip_hr_threshold": 50,
+        "remain_stopped_on_reboot": true,
+        "ignore_broken_sensors": false,
+        "disable_volt_checks": false,
+        "quiet_mode": false,
+        "downscale_preset_on_failure": false,
+        "auto_chip_throttling": false,
+        "max_startup_delay_time": 0,
+        "ignore_chip_sensors": false,
+        "min_operational_chains": 3
+      },
+      "overclock": {
+        "modded_psu": false,
+        "preset": "3530",
+        "globals": {
+          "volt": 1375,
+          "freq": 680
+        },
+        "chains": [
+          {
+            "freq": 675,
+            "chips": [
+              677,
+              676,
+              676,
+              0,
+              680,
+              679,
+              669,
+              677,
+              678,
+              0,
+              680,
+              679,
+              680,
+              678,
+              677,
+              679,
+              679,
+              678,
+              673,
+              670,
+              643,
+              677,
+              671,
+              677,
+              679,
+              680,
+              679,
+              680,
+              676,
+              680,
+              680,
+              676,
+              679,
+              679,
+              664,
+              663,
+              680,
+              0,
+              680,
+              679,
+              677,
+              673,
+              680,
+              680,
+              679,
+              680,
+              673,
+              673,
+              662,
+              660,
+              659,
+              673,
+              0,
+              678,
+              676,
+              679,
+              674,
+              680,
+              678,
+              680,
+              667,
+              657,
+              665,
+              676,
+              667,
+              679,
+              678,
+              0,
+              680,
+              679,
+              679,
+              679,
+              680,
+              678,
+              678,
+              680,
+              680
+            ],
+            "disabled": false
+          },
+          {
+            "freq": 626,
+            "chips": [
+              679,
+              680,
+              678,
+              679,
+              673,
+              664,
+              655,
+              0,
+              672,
+              655,
+              678,
+              674,
+              678,
+              680,
+              675,
+              678,
+              674,
+              674,
+              666,
+              638,
+              625,
+              644,
+              669,
+              671,
+              678,
+              680,
+              675,
+              679,
+              679,
+              680,
+              679,
+              680,
+              679,
+              677,
+              677,
+              670,
+              677,
+              680,
+              678,
+              680,
+              676,
+              679,
+              679,
+              676,
+              680,
+              676,
+              666,
+              679,
+              671,
+              648,
+              676,
+              679,
+              677,
+              680,
+              680,
+              679,
+              680,
+              678,
+              679,
+              676,
+              671,
+              674,
+              636,
+              679,
+              679,
+              678,
+              680,
+              679,
+              679,
+              680,
+              679,
+              680,
+              676,
+              678,
+              679,
+              680,
+              677
+            ],
+            "disabled": false
+          },
+          {
+            "freq": 636,
+            "chips": [
+              679,
+              676,
+              676,
+              680,
+              677,
+              679,
+              671,
+              0,
+              659,
+              676,
+              679,
+              677,
+              680,
+              680,
+              679,
+              678,
+              680,
+              680,
+              678,
+              664,
+              646,
+              663,
+              669,
+              676,
+              676,
+              676,
+              679,
+              680,
+              679,
+              679,
+              680,
+              680,
+              677,
+              666,
+              658,
+              653,
+              675,
+              673,
+              676,
+              678,
+              679,
+              676,
+              677,
+              678,
+              679,
+              678,
+              674,
+              680,
+              677,
+              633,
+              676,
+              678,
+              677,
+              679,
+              678,
+              680,
+              679,
+              679,
+              680,
+              680,
+              680,
+              669,
+              628,
+              646,
+              672,
+              679,
+              679,
+              677,
+              680,
+              680,
+              680,
+              680,
+              679,
+              678,
+              677,
+              680,
+              671
+            ],
+            "disabled": false
+          }
+        ],
+        "preset_switcher": {
+          "enabled": true,
+          "top_preset": "4730",
+          "decrease_temp": 72,
+          "rise_temp": 66,
+          "check_time": 60,
+          "autochange_top_preset": false,
+          "ignore_fan_speed": false,
+          "min_preset": "2050",
+          "power_delta": 0
+        }
+      },
+      "pools": [
+        {
+          "url": "wbt.k8x.com:3333",
+          "user": "kpro120.1",
+          "pass": "123"
+        },
+        {
+          "url": "wbt.k8x.com:3333",
+          "user": "kpro120.1",
+          "pass": "123"
+        },
+        {
+          "url": "wbt.k8x.com:3333",
+          "user": "kpro120.1",
+          "pass": "123"
+        }
+      ]
+    },
+    "ui": {
+      "theme": "auto",
+      "dark_side_pane": false,
+      "disable_animation": false,
+      "locale": "en",
+      "timezone": "GMT",
+      "consts": {
+        "cooling": {
+          "min_fan_pwm": 10,
+          "min_target_temp": 20,
+          "max_target_temp": 90,
+          "fan_min_count": {
+            "min": 1,
+            "max": 4,
+            "default": 4
+          }
+        },
+        "overclock": {
+          "max_voltage": 1535,
+          "min_voltage": 1200,
+          "default_voltage": 1380,
+          "max_freq": 1000,
+          "min_freq": 50,
+          "default_freq": 590,
+          "warn_freq": 600,
+          "max_voltage_stock_psu": 1500
+        },
+        "timezones": [
+          [
+            "GMT-11",
+            "GMT-11"
+          ],
+          [
+            "GMT-10",
+            "GMT-10"
+          ],
+          [
+            "GMT-9",
+            "GMT-09"
+          ],
+          [
+            "GMT-8",
+            "GMT-08"
+          ],
+          [
+            "GMT-7",
+            "GMT-07"
+          ],
+          [
+            "GMT-6",
+            "GMT-06"
+          ],
+          [
+            "GMT-5",
+            "GMT-05"
+          ],
+          [
+            "GMT-4",
+            "GMT-04"
+          ],
+          [
+            "GMT-3",
+            "GMT-03"
+          ],
+          [
+            "GMT-2",
+            "GMT-02"
+          ],
+          [
+            "GMT-1",
+            "GMT-01"
+          ],
+          [
+            "GMT",
+            "GMT"
+          ],
+          [
+            "GMT\u002B1",
+            "GMT\u002B01"
+          ],
+          [
+            "GMT\u002B2",
+            "GMT\u002B02"
+          ],
+          [
+            "GMT\u002B3",
+            "GMT\u002B03"
+          ],
+          [
+            "GMT\u002B4",
+            "GMT\u002B04"
+          ],
+          [
+            "GMT\u002B5",
+            "GMT\u002B05"
+          ],
+          [
+            "GMT\u002B6",
+            "GMT\u002B06"
+          ],
+          [
+            "GMT\u002B7",
+            "GMT\u002B07"
+          ],
+          [
+            "GMT\u002B8",
+            "GMT\u002B08"
+          ],
+          [
+            "GMT\u002B9",
+            "GMT\u002B09"
+          ],
+          [
+            "GMT\u002B10",
+            "GMT\u002B10"
+          ],
+          [
+            "GMT\u002B11",
+            "GMT\u002B11"
+          ],
+          [
+            "GMT\u002B12",
+            "GMT\u002B12"
+          ]
+        ]
+      }
+    },
+    "regional": {
+      "timezone": {
+        "current": "GMT"
+      }
+    },
+    "network": {
+      "hostname": "Antminer",
+      "dhcp": true,
+      "ipaddress": "192.168.15.44",
+      "netmask": "255.255.255.0",
+      "gateway": "192.168.15.1",
+      "dnsservers": [
+        "192.168.15.1",
+        "1.1.1.1"
+      ]
+    },
+    "password": null,
+    "layout": null
+  },
+  "summary": {
+    "miner": {
+      "miner_status": {
+        "miner_state": "mining",
+        "miner_state_time": 4218
+      },
+      "miner_type": "Antminer S19k Pro (Vnish 1.2.7)",
+      "hr_stock": 133201.0,
+      "average_hashrate": 182.86098,
+      "instant_hashrate": 184.23738,
+      "hr_realtime": 184237.38,
+      "hr_nominal": 184872.94,
+      "hr_average": 182860.98,
+      "pcb_temp": {
+        "min": 17,
+        "max": 50
+      },
+      "chip_temp": {
+        "min": 32,
+        "max": 65
+      },
+      "power_consumption": 4723,
+      "power_usage": 4723,
+      "power_efficiency": 25.828363,
+      "hw_errors_percent": 0.0,
+      "hr_error": 0.0,
+      "hw_errors": 0,
+      "devfee_percent": 1.051,
+      "devfee": 1937.8298,
+      "pools": [
+        {
+          "id": 0,
+          "url": "wbt.k8x.com:3333",
+          "pool_type": "UserPool",
+          "user": "kpro120.1",
+          "status": "active",
+          "asic_boost": true,
+          "diff": "524K",
+          "accepted": 260,
+          "rejected": 0,
+          "stale": 0,
+          "ls_diff": 524288.0,
+          "ls_time": "0:00:02",
+          "diffa": 166461440.0,
+          "ping": 34
+        },
+        {
+          "id": 1,
+          "url": "wbt.k8x.com:3333",
+          "pool_type": "UserPool",
+          "user": "kpro120.1",
+          "status": "working",
+          "asic_boost": true,
+          "diff": "",
+          "accepted": 0,
+          "rejected": 0,
+          "stale": 0,
+          "ls_diff": 0.0,
+          "ls_time": "0",
+          "diffa": 0.0,
+          "ping": 0
+        },
+        {
+          "id": 2,
+          "url": "wbt.k8x.com:3333",
+          "pool_type": "UserPool",
+          "user": "kpro120.1",
+          "status": "working",
+          "asic_boost": true,
+          "diff": "",
+          "accepted": 0,
+          "rejected": 0,
+          "stale": 0,
+          "ls_diff": 0.0,
+          "ls_time": "0",
+          "diffa": 0.0,
+          "ping": 0
+        },
+        {
+          "id": 3,
+          "url": "DevFee",
+          "pool_type": "DevFee",
+          "user": "DevFee",
+          "status": "working",
+          "asic_boost": true,
+          "diff": "65.5K",
+          "accepted": 12,
+          "rejected": 0,
+          "stale": 0,
+          "ls_diff": 65536.0,
+          "ls_time": "0:02:04",
+          "diffa": 1769472.0,
+          "ping": 0
+        }
+      ],
+      "cooling": {
+        "fan_num": 4,
+        "fans": [
+          {
+            "id": 0,
+            "rpm": 4170,
+            "status": "ok",
+            "max_rpm": 6000
+          },
+          {
+            "id": 1,
+            "rpm": 4530,
+            "status": "ok",
+            "max_rpm": 6000
+          },
+          {
+            "id": 2,
+            "rpm": 4410,
+            "status": "ok",
+            "max_rpm": 6000
+          },
+          {
+            "id": 3,
+            "rpm": 4410,
+            "status": "ok",
+            "max_rpm": 6000
+          }
+        ],
+        "settings": {
+          "mode": {
+            "name": "auto"
+          }
+        },
+        "fan_duty": 51
+      },
+      "chains": [
+        {
+          "id": 1,
+          "frequency": 899.5844,
+          "voltage": 14825,
+          "power_consumption": 1582,
+          "hashrate_ideal": 61925.594,
+          "hashrate_rt": 62103.395,
+          "hashrate_percentage": 98.87,
+          "hr_error": 0.0,
+          "hw_errors": 0,
+          "pcb_temp": {
+            "min": 20,
+            "max": 50
+          },
+          "chip_temp": {
+            "min": 35,
+            "max": 65
+          },
+          "chip_statuses": {
+            "red": 0,
+            "orange": 0,
+            "grey": 77
+          },
+          "status": {
+            "state": "mining"
+          }
+        },
+        {
+          "id": 2,
+          "frequency": 890.37665,
+          "voltage": 14825,
+          "power_consumption": 1565,
+          "hashrate_ideal": 61291.746,
+          "hashrate_rt": 60275.516,
+          "hashrate_percentage": 98.23,
+          "hr_error": 0.0,
+          "hw_errors": 0,
+          "pcb_temp": {
+            "min": 18,
+            "max": 48
+          },
+          "chip_temp": {
+            "min": 33,
+            "max": 63
+          },
+          "chip_statuses": {
+            "red": 0,
+            "orange": 0,
+            "grey": 77
+          },
+          "status": {
+            "state": "mining"
+          }
+        },
+        {
+          "id": 3,
+          "frequency": 895.66235,
+          "voltage": 14825,
+          "power_consumption": 1575,
+          "hashrate_ideal": 61655.605,
+          "hashrate_rt": 61858.46,
+          "hashrate_percentage": 99.62,
+          "hr_error": 0.0,
+          "hw_errors": 0,
+          "pcb_temp": {
+            "min": 17,
+            "max": 49
+          },
+          "chip_temp": {
+            "min": 32,
+            "max": 64
+          },
+          "chip_statuses": {
+            "red": 0,
+            "orange": 0,
+            "grey": 77
+          },
+          "status": {
+            "state": "mining"
+          }
+        }
+      ],
+      "found_blocks": 0,
+      "best_share": 64656353
+    }
+  },
+  "perfSummary": {
+    "current_preset": {
+      "name": "4730",
+      "pretty": "4730 watt ~ 183 TH",
+      "status": "tuned",
+      "modded_psu_required": false
+    },
+    "preset_switcher": {
+      "enabled": true,
+      "top_preset": "4730",
+      "decrease_temp": 72,
+      "rise_temp": 66,
+      "check_time": 60,
+      "autochange_top_preset": false,
+      "ignore_fan_speed": false,
+      "min_preset": "2050",
+      "power_delta": 0
+    }
+  }
+}

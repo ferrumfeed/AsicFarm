@@ -148,6 +148,7 @@ public sealed class ControlChannel : BackgroundService
         _log.LogInformation("ExecuteAsync START: kind={Kind}, miner={MinerId}", cmd.Kind, cmd.MinerId);
 
         var result = new MinerCommandResult(cmd.RequestId, cmd.MinerId, false, "unknown error", DateTimeOffset.UtcNow);
+        string? payloadJson = null;
         try
         {
             var ip = _registry.TryGetIp(cmd.MinerId) ?? throw new InvalidOperationException($"Unknown miner '{cmd.MinerId}'");
@@ -190,9 +191,30 @@ public sealed class ControlChannel : BackgroundService
                     await client.SetStartupDelayAsync(cmd.Value.Value, ct);
                     break;
 
+                case MinerCommandKind.ConfigurePresetSwitcher:
+                    if (string.IsNullOrWhiteSpace(cmd.MinPreset) || string.IsNullOrWhiteSpace(cmd.MaxPreset))
+                        throw new InvalidOperationException("MinPreset and MaxPreset required");
+                    await client.ConfigurePresetSwitcherAsync(cmd.Enabled ?? false, cmd.MinPreset!, cmd.MaxPreset!, cmd.RiseTemp ?? 80, cmd.DecreaseTemp ?? 70, ct);
+                    break;
+
+                case MinerCommandKind.GetAutotunePresets:
+                    var presets = await client.GetAutotunePresetsAsync(ct);
+                    payloadJson = System.Text.Json.JsonSerializer.Serialize(presets, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+                    break;
+
+                case MinerCommandKind.GetSettings:
+                    var settings = await client.GetSettingsAsync(ct);
+                    payloadJson = System.Text.Json.JsonSerializer.Serialize(settings, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+                    break;
+
+                // === NEW: сырой JSON для отладки ===
+                case MinerCommandKind.GetRawSettings:
+                    payloadJson = await client.GetRawSettingsJsonAsync(ct);
+                    break;
+
                 default: throw new InvalidOperationException($"Unknown command: {cmd.Kind}");
             }
-            return result with { Success = true, Error = null, CompletedAt = DateTimeOffset.UtcNow };
+            return result with { Success = true, Error = null, CompletedAt = DateTimeOffset.UtcNow, PayloadJson = payloadJson };
         }
         catch (MinerAuthException) { return result with { Error = "Authorization required", CompletedAt = DateTimeOffset.UtcNow }; }
         catch (MinerUnreachableException) { return result with { Error = "Miner unreachable", CompletedAt = DateTimeOffset.UtcNow }; }

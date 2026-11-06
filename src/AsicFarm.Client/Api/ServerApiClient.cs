@@ -33,7 +33,6 @@ public sealed class ServerApiClient
 
     private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage req, CancellationToken ct) => await _http.SendAsync(req, ct);
 
-    // ============== MINERS ==============
     public async Task<List<MinerDto>> GetMinersAsync(CancellationToken ct = default)
     {
         using var req = NewRequest(HttpMethod.Get, "api/v1/miners");
@@ -58,7 +57,6 @@ public sealed class ServerApiClient
         }
     }
 
-    // ============== SCHEDULES ==============
     public async Task<List<ScheduleDto>> GetSchedulesAsync(CancellationToken ct = default)
     {
         using var req = NewRequest(HttpMethod.Get, "api/v1/schedules");
@@ -95,7 +93,6 @@ public sealed class ServerApiClient
         resp.EnsureSuccessStatusCode();
     }
 
-    // ============== POOLS ==============
     public async Task SetPoolsAsync(string minerId, List<PoolConfigDto> pools, CancellationToken ct = default)
     {
         using var req = NewRequest(HttpMethod.Post, $"api/v1/miners/{Uri.EscapeDataString(minerId)}/pools");
@@ -104,7 +101,6 @@ public sealed class ServerApiClient
         if (!resp.IsSuccessStatusCode) { var body = await resp.Content.ReadAsStringAsync(ct); throw new InvalidOperationException($"HTTP {(int)resp.StatusCode}: {body}"); }
     }
 
-    // ============== DETAILED SNAPSHOT ==============
     public async Task<MinerDetailedSnapshot> GetDetailedSnapshotAsync(string minerId, CancellationToken ct = default)
     {
         using var req = NewRequest(HttpMethod.Get, $"api/v1/miners/{Uri.EscapeDataString(minerId)}/detailed");
@@ -113,7 +109,6 @@ public sealed class ServerApiClient
         return await resp.Content.ReadFromJsonAsync<MinerDetailedSnapshot>(JsonOpts, ct) ?? throw new InvalidOperationException("Empty detailed response");
     }
 
-    // ============== METRICS ==============
     public async Task<MetricsHistoryDto> GetMetricsAsync(string minerId, TimeSpan window, TimeSpan step, CancellationToken ct = default)
     {
         var windowSec = (int)window.TotalSeconds;
@@ -124,7 +119,6 @@ public sealed class ServerApiClient
         return await resp.Content.ReadFromJsonAsync<MetricsHistoryDto>(JsonOpts, ct) ?? throw new InvalidOperationException("Empty metrics");
     }
 
-    // ============== ALERTS ==============
     public async Task<List<AlertRuleDto>> GetAlertRulesAsync(CancellationToken ct = default)
     {
         using var req = NewRequest(HttpMethod.Get, "api/v1/alerts/rules");
@@ -168,7 +162,6 @@ public sealed class ServerApiClient
         return await resp.Content.ReadFromJsonAsync<List<AlertEventDto>>(JsonOpts, ct) ?? new();
     }
 
-    // ============== AUTOACTIONS ==============
     public async Task<List<AutoActionDto>> GetAutoActionsAsync(CancellationToken ct = default)
     {
         using var req = NewRequest(HttpMethod.Get, "api/v1/autoactions");
@@ -212,7 +205,6 @@ public sealed class ServerApiClient
         return await resp.Content.ReadFromJsonAsync<List<AutoActionEventDto>>(JsonOpts, ct) ?? new();
     }
 
-    // ============== SETTINGS (Telegram) ==============
     public async Task<SettingsDto> GetSettingsAsync(CancellationToken ct = default)
     {
         using var req = NewRequest(HttpMethod.Get, "api/v1/settings");
@@ -236,7 +228,6 @@ public sealed class ServerApiClient
         return new SettingsTestResult(false, $"HTTP {(int)resp.StatusCode}: {str}");
     }
 
-    // ============== MINER SETTINGS (Target Temp, Preset Switcher) ==============
     public async Task SetTargetTempAsync(string minerId, int targetTemp, CancellationToken ct = default)
     {
         using var req = NewRequest(HttpMethod.Post, $"api/v1/miners/{Uri.EscapeDataString(minerId)}/settings/target-temp");
@@ -252,7 +243,22 @@ public sealed class ServerApiClient
         if (!resp.IsSuccessStatusCode) throw new InvalidOperationException($"HTTP {(int)resp.StatusCode}");
     }
 
-    // ============== PRESETS ==============
+    public async Task<MinerSettingsDto?> GetMinerSettingsAsync(string minerId, CancellationToken ct = default)
+    {
+        using var req = NewRequest(HttpMethod.Get, $"api/v1/miners/{Uri.EscapeDataString(minerId)}/settings");
+        using var resp = await SendAsync(req, ct);
+        if (!resp.IsSuccessStatusCode) return null;
+        return await resp.Content.ReadFromJsonAsync<MinerSettingsDto>(JsonOpts, ct);
+    }
+
+    public async Task<string?> GetRawSettingsJsonAsync(string minerId, CancellationToken ct = default)
+    {
+        using var req = NewRequest(HttpMethod.Get, $"api/v1/miners/{Uri.EscapeDataString(minerId)}/raw-settings");
+        using var resp = await SendAsync(req, ct);
+        if (!resp.IsSuccessStatusCode) return null;
+        return await resp.Content.ReadAsStringAsync(ct);
+    }
+
     public async Task<List<VnishAutotunePreset>> GetPresetsAsync(string minerId, CancellationToken ct = default)
     {
         using var req = NewRequest(HttpMethod.Get, $"api/v1/miners/{Uri.EscapeDataString(minerId)}/presets");
@@ -261,7 +267,6 @@ public sealed class ServerApiClient
         return await resp.Content.ReadFromJsonAsync<List<VnishAutotunePreset>>(JsonOpts, ct) ?? new();
     }
 
-    // ============== COOLING / SAFETY (были ошибочно внутри MetricsHistoryDto) ==============
     public async Task SetCoolingModeAsync(string minerId, string mode, int fanDuty, CancellationToken ct = default)
     {
         using var req = NewRequest(HttpMethod.Post, $"api/v1/miners/{Uri.EscapeDataString(minerId)}/settings/cooling-mode");
@@ -295,7 +300,6 @@ public sealed class ServerApiClient
     }
 }
 
-// ============== DTO ==============
 public sealed record MinerDto(string MinerId, string Ip, string Mac, string Hostname, string Model, string ModelCode, string Firmware, string WatchdogId, DateTimeOffset FirstSeen, DateTimeOffset LastSeen, MinerSnapshot? Snapshot);
 public sealed record WatchdogDto(string Id, string Name, DateTimeOffset FirstSeen, DateTimeOffset LastSeen, int TotalSnapshotsReceived);
 public sealed record CommandResultDto(string RequestId, string MinerId, bool Success, string? Error, DateTimeOffset CompletedAt);

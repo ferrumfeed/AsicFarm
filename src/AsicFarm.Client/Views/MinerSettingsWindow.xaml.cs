@@ -5,9 +5,14 @@ namespace AsicFarm.Client.Views;
 
 public partial class MinerSettingsWindow : Window
 {
-    public MinerSettingsWindow(MinerSettingsViewModel viewModel)
+    public MinerSettingsWindow(MinerSettingsViewModel vm)
     {
         InitializeComponent();
-        DataContext = viewModel;
+        DataContext = vm;
+    }
+
+    private void Close_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
     }
 }
