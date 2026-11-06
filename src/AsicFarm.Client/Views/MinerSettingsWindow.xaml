@@ -24,6 +24,7 @@
                 BorderBrush="{DynamicResource ControlElevationBorderBrush}"
                 BorderThickness="0,0,0,1">
             <DockPanel>
+                <ui:SymbolIcon Symbol="Settings24" Filled="True" FontSize="20" Margin="0,0,8,0" VerticalAlignment="Center"/>
                 <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="SemiBold"
                            VerticalAlignment="Center" DockPanel.Dock="Left"/>
                 <ui:Button DockPanel.Dock="Right" Icon="{ui:SymbolIcon Dismiss24}"
@@ -38,7 +39,10 @@
                 <!-- Целевая температура -->
                 <ui:Card Padding="16" Margin="0,0,0,16">
                     <StackPanel>
-                        <TextBlock Text="Целевая температура" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <ui:SymbolIcon Symbol="Temperature24" Filled="True" Margin="0,0,8,0" Foreground="#3b82f6"/>
+                            <TextBlock Text="Целевая температура" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <ui:TextBox Text="{Binding TargetTemp, UpdateSourceTrigger=PropertyChanged}"
                                         Width="80" VerticalContentAlignment="Center"/>
@@ -51,7 +55,10 @@
                 <!-- Охлаждение -->
                 <ui:Card Padding="16" Margin="0,0,0,16">
                     <StackPanel>
-                        <TextBlock Text="Охлаждение" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <ui:SymbolIcon Symbol="WeatherSqualls24" Filled="True" Margin="0,0,8,0" Foreground="#10b981"/>
+                            <TextBlock Text="Охлаждение" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
 
                         <TextBlock Text="Режим работы" FontSize="12" Margin="0,0,0,4"
                                    Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
@@ -60,7 +67,6 @@
                             <ComboBoxItem Content="Ручной" Tag="manual"/>
                         </ComboBox>
 
-                        <!-- Показываем ШИМ только в ручном режиме -->
                         <StackPanel Visibility="{Binding IsManualCooling, Converter={StaticResource BoolToVisibilityConverter}}">
                             <TextBlock Text="ШИМ вентиляторов (%)" FontSize="12" Margin="0,0,0,4"
                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
@@ -72,19 +78,19 @@
                 <!-- Безопасность -->
                 <ui:Card Padding="16" Margin="0,0,0,16">
                     <StackPanel>
-                        <TextBlock Text="Безопасность" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <ui:SymbolIcon Symbol="ShieldCheckmark24" Filled="True" Margin="0,0,8,0" Foreground="#ef4444"/>
+                            <TextBlock Text="Безопасность" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
 
-                        <CheckBox Content="Тихий режим" IsChecked="{Binding QuietMode}" Margin="0,0,0,12" Foreground="#e8eaed"
-                                  ToolTip="Снижает скорость вентиляторов. Майнер может перезагрузиться для применения."/>
+                        <CheckBox Content="Тихий режим" IsChecked="{Binding QuietMode}" Margin="0,0,0,12" Foreground="#e8eaed"/>
 
                         <TextBlock Text="Аварийный рестарт при (°C)" FontSize="12" Margin="0,0,0,4"
-                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                   ToolTip="Если чип нагреется до этой температуры, майнер автоматически перезагрузится для защиты."/>
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                         <ui:TextBox Text="{Binding RestartTemp, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"/>
 
                         <TextBlock Text="Задержка старта (сек)" FontSize="12" Margin="0,0,0,4"
-                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                   ToolTip="Задержка включения вентиляторов при старте (для инверторных БП)."/>
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                         <ui:TextBox Text="{Binding StartupDelay, UpdateSourceTrigger=PropertyChanged}"/>
                     </StackPanel>
                 </ui:Card>
@@ -92,7 +98,10 @@
                 <!-- Переключатель пресетов -->
                 <ui:Card Padding="16" Margin="0,0,0,16">
                     <StackPanel>
-                        <TextBlock Text="Переключатель пресетов" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <ui:SymbolIcon Symbol="ArrowSync24" Filled="True" Margin="0,0,8,0" Foreground="#f59e0b"/>
+                            <TextBlock Text="Переключатель пресетов" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
 
                         <CheckBox Content="Включён" IsChecked="{Binding PresetSwitcherEnabled}" Margin="0,0,0,12" Foreground="#e8eaed"/>
 
@@ -130,6 +139,7 @@
                         </Grid>
 
                         <ui:Button Content="Применить переключатель"
+                                   Icon="{ui:SymbolIcon Checkmark24}"
                                    Command="{Binding ApplyPresetSwitcherCommand}"
                                    Appearance="Primary"
                                    HorizontalAlignment="Left"
@@ -142,6 +152,7 @@
 
                 <!-- Сохранение -->
                 <ui:Button Content="Сохранить основные настройки"
+                           Icon="{ui:SymbolIcon Save24}"
                            Command="{Binding SaveCommand}"
                            Appearance="Primary"
                            HorizontalAlignment="Stretch"

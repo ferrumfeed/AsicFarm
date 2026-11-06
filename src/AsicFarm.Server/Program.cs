@@ -27,6 +27,10 @@ try
     var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = args, ContentRootPath = baseDir });
     builder.Host.UseSerilog();
 
+    // ⚠️ Блок builder.WebHost.ConfigureKestrel(...) полностью УДАЛЕН.
+    // Дефолтные настройки Kestrel в .NET 8 оптимизированы для быстрой отдачи файлов.
+    // AllowSynchronousIO=true тормозил отдачу больших файлов.
+
     builder.Services.Configure<ServerOptions>(builder.Configuration.GetSection(ServerOptions.SectionName));
 
     var dbPath = builder.Configuration.GetValue<string>("Server:DatabasePath") ?? "asicfarm.db";
@@ -69,7 +73,8 @@ try
     app.MapMiners();
     app.MapIngest();
     app.MapCommands();
-    app.MapMinerSettings();   // ← NEW: /api/v1/miners/{id}/settings/preset-switcher + /presets
+    app.MapMinerSettings();
+    app.MapUpdates();       // <--- НОВЫЙ ЭНДПОИНТ
     app.MapSchedules();
     app.MapAlerts();
     app.MapSettings();

@@ -9,7 +9,11 @@ public sealed class ApiKeyMiddleware(RequestDelegate next)
     public async Task InvokeAsync(HttpContext ctx, IOptions<ServerOptions> opts)
     {
         var path = ctx.Request.Path.Value ?? "";
-        if (path.StartsWith("/health", StringComparison.OrdinalIgnoreCase))
+
+        // Пропускаем без проверки ключа: health, обновления (JSON и ZIP)
+        if (path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/api/v1/updates", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/updates", StringComparison.OrdinalIgnoreCase))
         {
             await next(ctx);
             return;
